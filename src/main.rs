@@ -22,21 +22,21 @@ enum Commands {
         #[arg(short, long)]
         package: String,
     },
-    
+
     /// Run analysis on all tests or specific tests
     Analyze {
         /// Package name
         #[arg(short, long)]
         package: String,
-        
+
         /// Specific tests to analyze (if not provided, all tests will be analyzed)
         #[arg(short, long)]
         tests: Option<Vec<String>>,
-        
+
         /// Output directory for intermediate results
         #[arg(short, long, default_value = "isotarp-output")]
         output_dir: PathBuf,
-        
+
         /// Output file for the analysis result
         #[arg(short, long, default_value = "isotarp-analysis.json")]
         report: PathBuf,
@@ -54,11 +54,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("  {}", test);
             }
         }
-        
-        Commands::Analyze { package, tests, output_dir, report } => {
+
+        Commands::Analyze {
+            package,
+            tests,
+            output_dir,
+            report,
+        } => {
             // Create the output directory if it doesn't exist
             std::fs::create_dir_all(&output_dir)?;
-            
+
             let test_names = match tests {
                 Some(specified_tests) => specified_tests,
                 None => {
@@ -66,21 +71,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     list_tests(&package)?
                 }
             };
-            
-            println!("Analyzing {} tests in package '{}'", test_names.len(), package);
-            
+
+            println!(
+                "Analyzing {} tests in package '{}'",
+                test_names.len(),
+                package
+            );
+
             // Run the analysis
             let analysis = run_analysis(&package, &test_names, &output_dir)?;
-            
+
             // Save the analysis result
             save_analysis(&analysis, &report)?;
-            
+
             println!("Analysis complete! Results saved to {}", report.display());
-            
+
             // Print a summary of the results
             let mut tests_by_unique: Vec<_> = analysis.tests.iter().collect();
             tests_by_unique.sort_by(|a, b| b.1.unique_covered_lines.cmp(&a.1.unique_covered_lines));
-            
+
             println!("\nTests ranked by unique line coverage:");
             for (test_name, stats) in tests_by_unique {
                 let unique_pct = if stats.total_covered_lines > 0 {
@@ -88,19 +97,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     0.0
                 };
-                
+
                 println!(
                     "  {}: {} unique lines ({:.1}% of {} total covered lines)",
                     test_name, stats.unique_covered_lines, unique_pct, stats.total_covered_lines
                 );
             }
-            
+
             // Find tests with no unique coverage
-            let no_unique = analysis.tests.iter()
+            let no_unique = analysis
+                .tests
+                .iter()
                 .filter(|(_, stats)| stats.unique_covered_lines == 0)
                 .map(|(name, _)| name)
                 .collect::<Vec<_>>();
-                
+
             if !no_unique.is_empty() {
                 println!("\nTests with NO unique coverage:");
                 for test in no_unique {

@@ -45,7 +45,10 @@ pub fn run_test_for_coverage(
 }
 
 /// Extract covered lines from a tarpaulin report
-pub fn extract_covered_lines(report: &TarpaulinReport, package_name: &str) -> HashMap<String, HashSet<u64>> {
+pub fn extract_covered_lines(
+    report: &TarpaulinReport,
+    package_name: &str,
+) -> HashMap<String, HashSet<u64>> {
     let mut covered_lines = HashMap::new();
 
     for file in &report.files {
@@ -157,10 +160,10 @@ pub fn run_analysis(
     // Run each test and collect coverage data
     for test_name in test_names {
         println!("Running analysis for test: {}", test_name);
-        
+
         let report = run_test_for_coverage(package_name, test_name, output_dir)?;
         let covered_lines = extract_covered_lines(&report, package_name);
-        
+
         test_coverage.insert(test_name.clone(), covered_lines);
     }
 
@@ -185,7 +188,7 @@ pub fn list_tests(package_name: &str) -> Result<Vec<String>, Error> {
     }
 
     let output_str = String::from_utf8(output.stdout)?;
-    
+
     // Parse the output to extract test names
     let tests: Vec<String> = output_str
         .lines()

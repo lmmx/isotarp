@@ -87,7 +87,7 @@ Tests ranked by unique line coverage:
   integration::parsing::test_complex_case: 42 unique lines (58.3% of 72 total covered lines)
   integration::errors::test_invalid_input: 18 unique lines (45.0% of 40 total covered lines)
   unit::helpers::test_normalization: 5 unique lines (10.2% of 49 total covered lines)
-  
+
 Tests with NO unique coverage:
   unit::helpers::test_validation
 ```
