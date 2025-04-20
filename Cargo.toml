@@ -12,3 +12,6 @@ authors = ["Louis Maddox <louismmx@gmail.com>"]
 rust-version = "1.86.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/lmmx/isotarp"
+description = "Identify which tests provide code coverage of which lines, uniquness, and redundancy"
+keywords = ["isotarp", "tarpaulin", "testing", "coverage"]
+categories = ["development-tools", "testing"]
