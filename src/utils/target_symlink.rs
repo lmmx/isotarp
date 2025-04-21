@@ -36,6 +36,16 @@ pub fn prepare_target_dirs(
             }
         }
 
+        // Create .cargo-lock files in debug directories
+        let debug_dir = test_target_dir.join("debug");
+        if debug_dir.exists() {
+            let cargo_lock_file = debug_dir.join(".cargo-lock");
+            if !cargo_lock_file.exists() {
+                // Create an empty file instead of a symlink
+                fs::write(&cargo_lock_file, "")?;
+            }
+        }
+
         // Then symlink all files
         for entry in WalkDir::new(master_target_dir)
             .into_iter()
@@ -46,30 +56,33 @@ pub fn prepare_target_dirs(
                     .path()
                     .strip_prefix(master_target_dir)
                     .expect("Failed to strip prefix");
+                
+                // Skip .cargo-lock files - they should be created as empty files, not symlinks
+                if entry.file_name() == ".cargo-lock" {
+                    continue;
+                }
 
                 let dest_file = test_target_dir.join(rel_path);
 
+                // Check if destination file already exists
                 if !dest_file.exists() {
-                    symlink(entry.path(), &dest_file)?;
-                } else if !dest_file.exists() {
                     // Create parent directory if needed
                     if let Some(parent) = dest_file.parent() {
                         fs::create_dir_all(parent)?;
                     }
 
-                    // Create symlink
+                    // Create symlink with proper error handling
                     match symlink(entry.path(), &dest_file) {
-                        Ok(_) => println!("Created symlink: {:?} -> {:?}", entry.path(), dest_file),
-                        Err(e) => println!(
-                            "Failed to create symlink: {:?} -> {:?}, error: {:?}",
-                            entry.path(),
-                            dest_file,
-                            e
-                        ),
+                        Ok(_) => (),
+                        Err(e) => {
+                            // If the error is "File exists", just continue
+                            if e.kind() == io::ErrorKind::AlreadyExists {
+                                continue;
+                            }
+                            // Otherwise, propagate the error
+                            return Err(e);
+                        }
                     }
-                } else {
-                    // File already exists, skip
-                    println!("Skipping existing file: {:?}", dest_file);
                 }
             }
         }
