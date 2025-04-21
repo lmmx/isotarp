@@ -1,10 +1,63 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, create_dir_all};
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 pub mod types;
 pub use types::*;
+
+/// Run a specific test using tarpaulin and return the covered lines
+/// This function assumes the package has already been built
+pub fn run_isolated_test_coverage(
+    package_name: &str,
+    test_name: &str,
+    output_dir: &Path,
+    skip_clean: bool,
+) -> Result<HashMap<String, HashSet<u64>>, Error> {
+    // Create output directory for this test
+    let test_output_dir = output_dir.join(test_name.replace("::", "/"));
+    create_dir_all(&test_output_dir)?;
+
+    // Build command arguments
+    let args = vec![
+        "tarpaulin",
+        "-p",
+        package_name,
+        "--no-fail-fast",
+        if skip_clean {
+            "--skip-clean"
+        } else {
+            "--force-clean"
+        },
+        "-o",
+        "Json",
+        "--output-dir",
+        test_output_dir.to_str().unwrap(),
+        "--",
+        test_name,
+    ];
+
+    // Run tarpaulin for this specific test
+    println!("Running coverage for test: {}", test_name);
+    let status = Command::new("cargo")
+        .args(&args)
+        .stdout(Stdio::null())
+        .status()?;
+
+    if !status.success() {
+        return Err(Error::TarpaulinFailed(status.to_string()));
+    }
+
+    // Read and parse the report
+    let report_path = test_output_dir.join("tarpaulin-report.json");
+    let report_content = fs::read_to_string(report_path)?;
+    let report: TarpaulinReport = serde_json::from_str(&report_content)?;
+
+    // Extract the covered lines
+    let covered_lines = extract_covered_lines(&report, package_name);
+
+    Ok(covered_lines)
+}
 
 /// Run all tests at once using tarpaulin and process the results
 pub fn run_analysis(
@@ -38,38 +91,7 @@ pub fn run_analysis(
 
     // Run tarpaulin for each test, but reuse the build
     for test_name in test_names {
-        println!("Running coverage for test: {}", test_name);
-
-        let test_output_dir = output_dir.join(test_name.replace("::", "/"));
-        create_dir_all(&test_output_dir)?;
-
-        // Run tarpaulin with the test specified correctly
-        let status = Command::new("cargo")
-            .args([
-                "tarpaulin",
-                "-p",
-                package_name,
-                "--skip-clean", // Important! Don't clean between runs
-                "--no-fail-fast",
-                "-o",
-                "Json",
-                "--output-dir",
-                test_output_dir.to_str().unwrap(),
-                "--",
-                test_name,
-            ])
-            .status()?;
-
-        if !status.success() {
-            return Err(Error::TarpaulinFailed(status.to_string()));
-        }
-
-        // Read and parse the report
-        let report_path = test_output_dir.join("tarpaulin-report.json");
-        let report_content = fs::read_to_string(report_path)?;
-        let report: TarpaulinReport = serde_json::from_str(&report_content)?;
-
-        let covered_lines = extract_covered_lines(&report, package_name);
+        let covered_lines = run_isolated_test_coverage(package_name, test_name, output_dir, true)?;
         test_coverage.insert(test_name.clone(), covered_lines);
     }
 
