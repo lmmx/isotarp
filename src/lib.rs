@@ -6,41 +6,81 @@ use std::process::Command;
 pub mod types;
 pub use types::*;
 
-/// Run a specific test using tarpaulin and return the lines it covers
-pub fn run_test_for_coverage(
+/// Run all tests at once using tarpaulin and process the results
+pub fn run_analysis(
     package_name: &str,
-    test_name: &str,
+    test_names: &[String],
     output_dir: &Path,
-) -> Result<TarpaulinReport, Error> {
+) -> Result<IsotarpAnalysis, Error> {
     // Create output directory
-    let test_output_dir = output_dir.join(test_name.replace("::", "/"));
-    create_dir_all(&test_output_dir)?;
+    create_dir_all(output_dir)?;
 
-    // Run tarpaulin for this specific test
+    // Clean and build once at the beginning
+    println!("Cleaning and building package...");
     let status = Command::new("cargo")
-        .args([
-            "tarpaulin",
-            "-p",
-            package_name,
-            "-o",
-            "Json",
-            "--output-dir",
-            test_output_dir.to_str().unwrap(),
-            "--",
-            test_name,
-        ])
+        .args(["clean", "-p", package_name])
         .status()?;
 
     if !status.success() {
-        return Err(Error::TarpaulinFailed(status.to_string()));
+        return Err(Error::CommandFailed("cargo clean".to_string()));
     }
 
-    // Read and parse the report
-    let report_path = test_output_dir.join("tarpaulin-report.json");
-    let report_content = fs::read_to_string(report_path)?;
-    let report: TarpaulinReport = serde_json::from_str(&report_content)?;
+    // Build the package
+    let status = Command::new("cargo")
+        .args(["build", "--tests", "-p", package_name])
+        .status()?;
 
-    Ok(report)
+    if !status.success() {
+        return Err(Error::CommandFailed("cargo build --tests".to_string()));
+    }
+
+    let mut test_coverage = HashMap::new();
+
+    // Run tarpaulin for each test, but reuse the build
+    for test_name in test_names {
+        println!("Running coverage for test: {}", test_name);
+
+        let test_output_dir = output_dir.join(test_name.replace("::", "/"));
+        create_dir_all(&test_output_dir)?;
+
+        // Run tarpaulin with the test specified correctly
+        let status = Command::new("cargo")
+            .args([
+                "tarpaulin",
+                "-p",
+                package_name,
+                "--skip-clean", // Important! Don't clean between runs
+                "--no-fail-fast",
+                "-o",
+                "Json",
+                "--output-dir",
+                test_output_dir.to_str().unwrap(),
+                "--",
+                test_name,
+            ])
+            .status()?;
+
+        if !status.success() {
+            return Err(Error::TarpaulinFailed(status.to_string()));
+        }
+
+        // Read and parse the report
+        let report_path = test_output_dir.join("tarpaulin-report.json");
+        let report_content = fs::read_to_string(report_path)?;
+        let report: TarpaulinReport = serde_json::from_str(&report_content)?;
+
+        let covered_lines = extract_covered_lines(&report, package_name);
+        test_coverage.insert(test_name.clone(), covered_lines);
+    }
+
+    // Analyze the collected data
+    let analysis = analyze_test_coverage(&test_coverage);
+
+    // Return the final analysis
+    Ok(IsotarpAnalysis {
+        package: package_name.to_string(),
+        tests: analysis,
+    })
 }
 
 /// Extract covered lines from a tarpaulin report
@@ -146,34 +186,6 @@ pub fn analyze_test_coverage(
     }
 
     analysis
-}
-
-/// Run analysis for multiple tests
-pub fn run_analysis(
-    package_name: &str,
-    test_names: &[String],
-    output_dir: &Path,
-) -> Result<IsotarpAnalysis, Error> {
-    let mut test_coverage = HashMap::new();
-
-    // Run each test and collect coverage data
-    for test_name in test_names {
-        println!("Running analysis for test: {}", test_name);
-
-        let report = run_test_for_coverage(package_name, test_name, output_dir)?;
-        let covered_lines = extract_covered_lines(&report, package_name);
-
-        test_coverage.insert(test_name.clone(), covered_lines);
-    }
-
-    // Analyze the collected data
-    let analysis = analyze_test_coverage(&test_coverage);
-
-    // Return the final analysis
-    Ok(IsotarpAnalysis {
-        package: package_name.to_string(),
-        tests: analysis,
-    })
 }
 
 /// Get all test names from the package
