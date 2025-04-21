@@ -1,0 +1,10 @@
+{
+  "package": "demolib",
+  "tests": {
+    "test_not_bar": {
+      "total_covered_lines": 0,
+      "unique_covered_lines": 0,
+      "files": {}
+    }
+  }
+}
