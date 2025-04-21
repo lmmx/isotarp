@@ -1,4 +1,3 @@
-// src/main.rs
 use clap::{Parser, Subcommand};
 use isotarp::{list_tests, run_analysis, save_analysis};
 use std::path::PathBuf;

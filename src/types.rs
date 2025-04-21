@@ -1,4 +1,3 @@
-// src/types.rs
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use thiserror::Error;
@@ -48,11 +47,8 @@ pub struct Trace {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "type", content = "value")]
 pub enum LineStat {
-    #[serde(rename = "Line")]
     Line(u64),
-    // Add other stats as needed
 }
 
 /// Analysis of a single test's coverage
