@@ -3,7 +3,8 @@ fail_fast: true
 exclude: |
   (?x)^(
     .*/(target)/.*|
-    (Cargo.lock)|
+    .*\.lock|
+    .*\.json|
   )$
 
 ci:
@@ -26,7 +27,7 @@ repos:
       - id: cargo-fmt
         name: cargo fmt
         entry: cargo fmt --
-        language: system
+        language: rust
         types: [rust]
         pass_filenames: false
   - repo: https://github.com/pre-commit/pre-commit-hooks
