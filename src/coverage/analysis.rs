@@ -5,7 +5,7 @@ use crate::utils::target_symlink::prepare_target_dirs;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 /// Clean up target directories to save disk space
@@ -65,8 +65,6 @@ pub fn run_analysis(
     let test_target_dirs =
         prepare_target_dirs(master_target_dir, test_names, output_dir).map_err(|e| Error::Io(e))?;
 
-    // Use a variable to track if we need to clean up after an error
-    let mut need_cleanup = true;
     let mut test_coverage = HashMap::new();
 
     // Define a closure for cleanup that we can call in multiple places
@@ -95,7 +93,6 @@ pub fn run_analysis(
             for (test_name, covered_lines) in results_vec {
                 test_coverage.insert(test_name, covered_lines);
             }
-            need_cleanup = false; // We'll clean up after analyzing
         }
         Err(e) => {
             // Clean up if there was an error during test coverage collection
