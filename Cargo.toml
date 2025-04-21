@@ -6,7 +6,7 @@ thiserror = "2.0.12"
 
 [package]
 name = "isotarp"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2024"
 authors = ["Louis Maddox <louismmx@gmail.com>"]
 rust-version = "1.86.0"
