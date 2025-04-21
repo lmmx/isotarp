@@ -1,9 +1,33 @@
 use crate::coverage::tarpaulin::run_isolated_test_coverage;
 use crate::types::errors::Error;
 use crate::types::models::{FileCoverageAnalysis, IsotarpAnalysis, TestCoverageAnalysis};
-use std::collections::{HashMap, HashSet};
-use std::process::Command;
+use crate::utils::target_symlink::prepare_target_dirs;
 use rayon::prelude::*;
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+/// Clean up target directories to save disk space
+fn cleanup_target_dirs(output_dir: &Path, test_names: &[String]) {
+    println!("Cleaning up temporary target directories...");
+
+    for test_name in test_names {
+        let test_dir = output_dir.join(test_name.replace("::", "/"));
+        let target_dir = test_dir.join("tarpaulin-target");
+
+        if target_dir.exists() {
+            match fs::remove_dir_all(&target_dir) {
+                Ok(_) => (),
+                Err(e) => println!(
+                    "Warning: Failed to clean up '{}': {}",
+                    target_dir.display(),
+                    e
+                ),
+            }
+        }
+    }
+}
 
 /// Run all tests at once using tarpaulin and process the results
 pub fn run_analysis(
@@ -33,16 +57,58 @@ pub fn run_analysis(
         return Err(Error::CommandFailed("cargo build --tests".to_string()));
     }
 
-    let test_coverage: HashMap<String, HashMap<String, HashSet<u64>>> = test_names
-        .par_iter() // Use rayon to run tests in parallel
-        .map(|test_name| {
-            let covered_lines = run_isolated_test_coverage(package_name, test_name, output_dir, true)?;
+    // Get the master target directory path
+    let master_target_dir = Path::new("target");
+
+    // Prepare copied target directories for each test
+    println!("Preparing target directories for parallel execution...");
+    let test_target_dirs =
+        prepare_target_dirs(master_target_dir, test_names, output_dir).map_err(|e| Error::Io(e))?;
+
+    // Use a variable to track if we need to clean up after an error
+    let mut need_cleanup = true;
+    let mut test_coverage = HashMap::new();
+
+    // Define a closure for cleanup that we can call in multiple places
+    let cleanup = || cleanup_target_dirs(output_dir, test_names);
+
+    // Run tarpaulin for each test in parallel
+    let results: Result<Vec<(String, HashMap<String, HashSet<u64>>)>, Error> = test_names
+        .par_iter()
+        .enumerate()
+        .map(|(i, test_name)| {
+            let covered_lines = run_isolated_test_coverage(
+                package_name,
+                test_name,
+                output_dir,
+                &test_target_dirs[i],
+                true, // skip_clean is always true for parallel runs
+            )?;
             Ok((test_name.clone(), covered_lines))
         })
-        .collect::<Result<HashMap<_, _>, Error>>()?; // Collect results into a HashMap
+        .collect();
+
+    // Handle the results - either populate test_coverage or return error
+    match results {
+        Ok(results_vec) => {
+            // Convert Vec to HashMap
+            for (test_name, covered_lines) in results_vec {
+                test_coverage.insert(test_name, covered_lines);
+            }
+            need_cleanup = false; // We'll clean up after analyzing
+        }
+        Err(e) => {
+            // Clean up if there was an error during test coverage collection
+            cleanup();
+            return Err(e);
+        }
+    }
 
     // Analyze the collected data
     let analysis = analyze_test_coverage(&test_coverage);
+
+    // Clean up target directories
+    cleanup();
 
     // Return the final analysis
     Ok(IsotarpAnalysis {
