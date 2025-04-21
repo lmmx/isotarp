@@ -2,6 +2,7 @@ use crate::coverage::analysis::run_analysis;
 use crate::coverage::tarpaulin::list_tests;
 use crate::utils::io::save_analysis;
 use clap::{Parser, Subcommand};
+use std::fs;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -44,6 +45,27 @@ pub enum Commands {
     },
 }
 
+/// Clean up target directories to save disk space
+fn cleanup_target_dirs(output_dir: &PathBuf, test_names: &[String]) {
+    println!("Cleaning up temporary target directories...");
+
+    for test_name in test_names {
+        let test_dir = output_dir.join(test_name.replace("::", "/"));
+        let target_dir = test_dir.join("tarpaulin-target");
+
+        if target_dir.exists() {
+            match fs::remove_dir_all(&target_dir) {
+                Ok(_) => (),
+                Err(e) => println!(
+                    "Warning: Failed to clean up '{}': {}",
+                    target_dir.display(),
+                    e
+                ),
+            }
+        }
+    }
+}
+
 pub fn execute_list_command(package: &str) -> Result<(), Box<dyn std::error::Error>> {
     let tests = list_tests(package)?;
     println!("Found {} tests in package '{}':", tests.len(), package);
@@ -76,8 +98,18 @@ pub fn execute_analyze_command(
         package
     );
 
-    // Run the analysis
-    let analysis = run_analysis(package, &test_names, output_dir)?;
+    // Run the analysis with cleanup in case of error
+    let result = run_analysis(package, &test_names, output_dir);
+
+    // Handle the result
+    let analysis = match result {
+        Ok(analysis) => analysis,
+        Err(e) => {
+            // Do a final cleanup in case there wasn't one
+            cleanup_target_dirs(output_dir, &test_names);
+            return Err(Box::new(e));
+        }
+    };
 
     // Save the analysis result
     save_analysis(&analysis, report)?;
@@ -116,6 +148,9 @@ pub fn execute_analyze_command(
             println!("  {}", test);
         }
     }
+
+    // Final cleanup just to be extra sure
+    cleanup_target_dirs(output_dir, &test_names);
 
     Ok(())
 }

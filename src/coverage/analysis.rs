@@ -4,8 +4,30 @@ use crate::types::models::{FileCoverageAnalysis, IsotarpAnalysis, TestCoverageAn
 use crate::utils::target_symlink::prepare_target_dirs;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+/// Clean up target directories to save disk space
+fn cleanup_target_dirs(output_dir: &Path, test_names: &[String]) {
+    println!("Cleaning up temporary target directories...");
+
+    for test_name in test_names {
+        let test_dir = output_dir.join(test_name.replace("::", "/"));
+        let target_dir = test_dir.join("tarpaulin-target");
+
+        if target_dir.exists() {
+            match fs::remove_dir_all(&target_dir) {
+                Ok(_) => (),
+                Err(e) => println!(
+                    "Warning: Failed to clean up '{}': {}",
+                    target_dir.display(),
+                    e
+                ),
+            }
+        }
+    }
+}
 
 /// Run all tests at once using tarpaulin and process the results
 pub fn run_analysis(
@@ -38,13 +60,20 @@ pub fn run_analysis(
     // Get the master target directory path
     let master_target_dir = Path::new("target");
 
-    // Prepare symlinked target directories for each test
+    // Prepare copied target directories for each test
     println!("Preparing target directories for parallel execution...");
     let test_target_dirs =
         prepare_target_dirs(master_target_dir, test_names, output_dir).map_err(|e| Error::Io(e))?;
 
+    // Use a variable to track if we need to clean up after an error
+    let mut need_cleanup = true;
+    let mut test_coverage = HashMap::new();
+
+    // Define a closure for cleanup that we can call in multiple places
+    let cleanup = || cleanup_target_dirs(output_dir, test_names);
+
     // Run tarpaulin for each test in parallel
-    let results: Result<HashMap<_, _>, Error> = test_names
+    let results: Result<Vec<(String, HashMap<String, HashSet<u64>>)>, Error> = test_names
         .par_iter()
         .enumerate()
         .map(|(i, test_name)| {
@@ -59,10 +88,27 @@ pub fn run_analysis(
         })
         .collect();
 
-    let test_coverage = results?;
+    // Handle the results - either populate test_coverage or return error
+    match results {
+        Ok(results_vec) => {
+            // Convert Vec to HashMap
+            for (test_name, covered_lines) in results_vec {
+                test_coverage.insert(test_name, covered_lines);
+            }
+            need_cleanup = false; // We'll clean up after analyzing
+        }
+        Err(e) => {
+            // Clean up if there was an error during test coverage collection
+            cleanup();
+            return Err(e);
+        }
+    }
 
     // Analyze the collected data
     let analysis = analyze_test_coverage(&test_coverage);
+
+    // Clean up target directories
+    cleanup();
 
     // Return the final analysis
     Ok(IsotarpAnalysis {
