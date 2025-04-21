@@ -1,0 +1,20 @@
+{
+  "package": "demolib",
+  "tests": {
+    "tests::test_foo": {
+      "files": {
+        "//home/louis/dev/isotarp/tests/fixtures/demolib/src/functions.rs": [
+          1,
+          2
+        ]
+      },
+      "total_covered_lines": 2,
+      "unique_covered_lines": 2
+    },
+    "tests::test_not_bar": {
+      "files": {},
+      "total_covered_lines": 0,
+      "unique_covered_lines": 0
+    }
+  }
+}
