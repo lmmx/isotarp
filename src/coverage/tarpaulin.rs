@@ -2,7 +2,7 @@ use crate::types::errors::Error;
 use crate::types::models::{LineStat, TarpaulinReport};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 /// Run a specific test using tarpaulin and return the covered lines
 /// This function assumes the package has already been built
@@ -15,7 +15,16 @@ pub fn run_isolated_test_coverage(
 ) -> Result<HashMap<String, HashSet<u64>>, Error> {
     // Create output directory for this test
     let test_output_dir = output_dir.join(test_name.replace("::", "/"));
-    std::fs::create_dir_all(&test_output_dir)?;
+    std::fs::create_dir_all(&test_output_dir).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!(
+                "Failed to create output directory '{}': {}",
+                test_output_dir.display(),
+                e
+            ),
+        ))
+    })?;
 
     // Build command arguments
     let args = vec![
@@ -29,30 +38,45 @@ pub fn run_isolated_test_coverage(
             "--force-clean"
         },
         "--target-dir",
-        target_dir.to_str().unwrap(),
+        target_dir.to_str().unwrap_or_default(),
         "-o",
         "Json",
         "--output-dir",
-        test_output_dir.to_str().unwrap(),
+        test_output_dir.to_str().unwrap_or_default(),
         "--",
         test_name,
     ];
 
     // Run tarpaulin for this specific test
     println!("Running coverage for test: {}", test_name);
-    let status = Command::new("cargo")
+    let output = Command::new("cargo")
         .args(&args)
-        .stdout(Stdio::null())
-        .status()?;
+        .output()
+        .map_err(|e| Error::CommandFailed(format!("Failed to execute cargo command: {}", e)))?;
 
-    if !status.success() {
-        return Err(Error::TarpaulinFailed(status.to_string()));
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(Error::TarpaulinFailed(format!(
+            "Tarpaulin failed for test '{}' with status: {}\nStderr: {}",
+            test_name, output.status, stderr
+        )));
     }
 
     // Read and parse the report
     let report_path = test_output_dir.join("tarpaulin-report.json");
-    let report_content = std::fs::read_to_string(report_path)?;
-    let report: TarpaulinReport = serde_json::from_str(&report_content)?;
+    let report_content = std::fs::read_to_string(&report_path).map_err(|e| {
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!(
+                "Failed to read tarpaulin report '{}': {}",
+                report_path.display(),
+                e
+            ),
+        ))
+    })?;
+
+    let report: TarpaulinReport = serde_json::from_str(&report_content)
+        .map_err(|e| Error::Json(serde_json::Error::from(e)))?;
 
     // Extract the covered lines
     let covered_lines = extract_covered_lines(&report, package_name);
@@ -97,13 +121,20 @@ pub fn extract_covered_lines(
 pub fn list_tests(package_name: &str) -> Result<Vec<String>, Error> {
     let output = Command::new("cargo")
         .args(["test", "-p", package_name, "--", "--quiet", "--list"])
-        .output()?;
+        .output()
+        .map_err(|e| {
+            Error::CommandFailed(format!("Failed to execute 'cargo test --list': {}", e))
+        })?;
 
     if !output.status.success() {
-        return Err(Error::CommandFailed("cargo test --list".to_string()));
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(Error::CommandFailed(format!(
+            "cargo test --list failed: {}\nStderr: {}",
+            output.status, stderr
+        )));
     }
 
-    let output_str = String::from_utf8(output.stdout)?;
+    let output_str = String::from_utf8(output.stdout).map_err(|e| Error::Utf8(e))?;
 
     // Parse the output to extract test names
     let tests: Vec<String> = output_str
