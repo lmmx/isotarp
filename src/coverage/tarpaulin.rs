@@ -1,6 +1,7 @@
 use crate::types::errors::Error;
 use crate::types::models::{LineStat, TarpaulinReport};
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 use std::process::{Command, Stdio};
 
 /// Run a specific test using tarpaulin and return the covered lines
@@ -8,14 +9,13 @@ use std::process::{Command, Stdio};
 pub fn run_isolated_test_coverage(
     package_name: &str,
     test_name: &str,
-    output_dir: &std::path::Path,
+    output_dir: &Path,
+    target_dir: &Path,
     skip_clean: bool,
 ) -> Result<HashMap<String, HashSet<u64>>, Error> {
     // Create output directory for this test
     let test_output_dir = output_dir.join(test_name.replace("::", "/"));
     std::fs::create_dir_all(&test_output_dir)?;
-
-    let target_dir = test_output_dir.join("tarpaulin-target");
 
     // Build command arguments
     let args = vec![

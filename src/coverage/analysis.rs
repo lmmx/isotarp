@@ -1,9 +1,11 @@
 use crate::coverage::tarpaulin::run_isolated_test_coverage;
 use crate::types::errors::Error;
 use crate::types::models::{FileCoverageAnalysis, IsotarpAnalysis, TestCoverageAnalysis};
-use std::collections::{HashMap, HashSet};
-use std::process::Command;
+use crate::utils::target_symlink::prepare_target_dirs;
 use rayon::prelude::*;
+use std::collections::{HashMap, HashSet};
+use std::path::Path;
+use std::process::Command;
 
 /// Run all tests at once using tarpaulin and process the results
 pub fn run_analysis(
@@ -33,13 +35,31 @@ pub fn run_analysis(
         return Err(Error::CommandFailed("cargo build --tests".to_string()));
     }
 
-    let test_coverage: HashMap<String, HashMap<String, HashSet<u64>>> = test_names
-        .par_iter() // Use rayon to run tests in parallel
-        .map(|test_name| {
-            let covered_lines = run_isolated_test_coverage(package_name, test_name, output_dir, true)?;
+    // Get the master target directory path
+    let master_target_dir = Path::new("target");
+
+    // Prepare symlinked target directories for each test
+    println!("Preparing target directories for parallel execution...");
+    let test_target_dirs =
+        prepare_target_dirs(master_target_dir, test_names, output_dir).map_err(|e| Error::Io(e))?;
+
+    // Run tarpaulin for each test in parallel
+    let results: Result<HashMap<_, _>, Error> = test_names
+        .par_iter()
+        .enumerate()
+        .map(|(i, test_name)| {
+            let covered_lines = run_isolated_test_coverage(
+                package_name,
+                test_name,
+                output_dir,
+                &test_target_dirs[i],
+                true, // skip_clean is always true for parallel runs
+            )?;
             Ok((test_name.clone(), covered_lines))
         })
-        .collect::<Result<HashMap<_, _>, Error>>()?; // Collect results into a HashMap
+        .collect();
+
+    let test_coverage = results?;
 
     // Analyze the collected data
     let analysis = analyze_test_coverage(&test_coverage);
