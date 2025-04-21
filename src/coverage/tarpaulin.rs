@@ -15,6 +15,8 @@ pub fn run_isolated_test_coverage(
     let test_output_dir = output_dir.join(test_name.replace("::", "/"));
     std::fs::create_dir_all(&test_output_dir)?;
 
+    let target_dir = test_output_dir.join("tarpaulin-target");
+
     // Build command arguments
     let args = vec![
         "tarpaulin",
@@ -26,6 +28,8 @@ pub fn run_isolated_test_coverage(
         } else {
             "--force-clean"
         },
+        "--target-dir",
+        target_dir.to_str().unwrap(),
         "-o",
         "Json",
         "--output-dir",

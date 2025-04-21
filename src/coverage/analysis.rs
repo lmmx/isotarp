@@ -3,6 +3,7 @@ use crate::types::errors::Error;
 use crate::types::models::{FileCoverageAnalysis, IsotarpAnalysis, TestCoverageAnalysis};
 use std::collections::{HashMap, HashSet};
 use std::process::Command;
+use rayon::prelude::*;
 
 /// Run all tests at once using tarpaulin and process the results
 pub fn run_analysis(
@@ -32,13 +33,13 @@ pub fn run_analysis(
         return Err(Error::CommandFailed("cargo build --tests".to_string()));
     }
 
-    let mut test_coverage = HashMap::new();
-
-    // Run tarpaulin for each test, but reuse the build
-    for test_name in test_names {
-        let covered_lines = run_isolated_test_coverage(package_name, test_name, output_dir, true)?;
-        test_coverage.insert(test_name.clone(), covered_lines);
-    }
+    let test_coverage: HashMap<String, HashMap<String, HashSet<u64>>> = test_names
+        .par_iter() // Use rayon to run tests in parallel
+        .map(|test_name| {
+            let covered_lines = run_isolated_test_coverage(package_name, test_name, output_dir, true)?;
+            Ok((test_name.clone(), covered_lines))
+        })
+        .collect::<Result<HashMap<_, _>, Error>>()?; // Collect results into a HashMap
 
     // Analyze the collected data
     let analysis = analyze_test_coverage(&test_coverage);
