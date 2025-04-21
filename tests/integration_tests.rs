@@ -2,16 +2,6 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-// Helper function to run the isotarp CLI
-fn run_isotarp(args: &[&str]) -> Result<std::process::Output, std::io::Error> {
-    let cargo_path = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-
-    Command::new(cargo_path)
-        .args(&["run", "--manifest-path", "../Cargo.toml", "--", "isotarp"])
-        .args(args)
-        .output()
-}
-
 #[test]
 fn test_coverage_analysis_demo_lib() {
     // First ensure we're in the right directory
@@ -21,7 +11,7 @@ fn test_coverage_analysis_demo_lib() {
         "Test fixtures directory doesn't exist"
     );
 
-    let demo_lib_dir = test_fixtures_dir.join("demo_lib");
+    let demo_lib_dir = test_fixtures_dir.join("demolib");
     assert!(demo_lib_dir.exists(), "Demo lib directory doesn't exist");
 
     // Build the demo library first to ensure it's working
@@ -45,16 +35,25 @@ fn test_coverage_analysis_demo_lib() {
     let _ = fs::remove_dir_all(&output_dir);
     let _ = fs::remove_file(&report_file);
 
-    let analyze_output = run_isotarp(&[
-        "analyze",
-        "-p",
-        "demo_lib",
-        "-o",
-        output_dir.to_str().unwrap(),
-        "-r",
-        report_file.to_str().unwrap(),
-    ])
-    .expect("Failed to run isotarp analyze");
+    // Get the path to the compiled isotarp binary
+    let isotarp_bin = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("target/debug/isotarp");
+    
+    // Run the isotarp command with the current working directory set to the demo lib directory
+    let analyze_output = Command::new(isotarp_bin)
+        .current_dir(&demo_lib_dir)  // Set the working directory
+        .args(&[
+            "analyze",
+            "-p", "demolib",
+            "-o", "isotarp-output",
+            "-r", "isotarp-analysis.json",
+        ])
+        .output()
+        .expect("Failed to run isotarp analyze");
+
+    // Print the output to debug
+    println!("Command stdout: {}", String::from_utf8_lossy(&analyze_output.stdout));
+    println!("Command stderr: {}", String::from_utf8_lossy(&analyze_output.stderr));
 
     assert!(
         analyze_output.status.success(),

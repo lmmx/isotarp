@@ -1,7 +1,21 @@
 {
   "package": "demolib",
   "tests": {
-    "test_not_bar": {
+    "tests::test_foo": {
+      "total_covered_lines": 2,
+      "unique_covered_lines": 2,
+      "files": {
+        "//home/louis/dev/isotarp/tests/fixtures/demolib/src/functions.rs": {
+          "total_covered_lines": 2,
+          "unique_covered_lines": 2,
+          "unique_lines": [
+            1,
+            2
+          ]
+        }
+      }
+    },
+    "tests::test_not_bar": {
       "total_covered_lines": 0,
       "unique_covered_lines": 0,
       "files": {}
