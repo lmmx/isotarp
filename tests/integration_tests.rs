@@ -36,24 +36,32 @@ fn test_coverage_analysis_demo_lib() {
     let _ = fs::remove_file(&report_file);
 
     // Get the path to the compiled isotarp binary
-    let isotarp_bin = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("target/debug/isotarp");
-    
+    let isotarp_bin = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/debug/isotarp");
+
     // Run the isotarp command with the current working directory set to the demo lib directory
     let analyze_output = Command::new(isotarp_bin)
-        .current_dir(&demo_lib_dir)  // Set the working directory
+        .current_dir(&demo_lib_dir) // Set the working directory
         .args(&[
             "analyze",
-            "-p", "demolib",
-            "-o", "isotarp-output",
-            "-r", "isotarp-analysis.json",
+            "-p",
+            "demolib",
+            "-o",
+            "isotarp-output",
+            "-r",
+            "isotarp-analysis.json",
         ])
         .output()
         .expect("Failed to run isotarp analyze");
 
     // Print the output to debug
-    println!("Command stdout: {}", String::from_utf8_lossy(&analyze_output.stdout));
-    println!("Command stderr: {}", String::from_utf8_lossy(&analyze_output.stderr));
+    println!(
+        "Command stdout: {}",
+        String::from_utf8_lossy(&analyze_output.stdout)
+    );
+    println!(
+        "Command stderr: {}",
+        String::from_utf8_lossy(&analyze_output.stderr)
+    );
 
     assert!(
         analyze_output.status.success(),
