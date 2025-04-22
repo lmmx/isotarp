@@ -1,4 +1,4 @@
-use crate::utils::paths::{test_output_dir, test_target_dir};
+use crate::utils::paths::{test_output_dir, test_target_dir, artifacts_dir};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -24,13 +24,18 @@ pub fn prepare_target_dirs(
     output_dir: &Path,
 ) -> io::Result<Vec<PathBuf>> {
     let mut test_target_dirs = Vec::new();
+    
+    // Ensure the central artifacts directory exists
+    fs::create_dir_all(artifacts_dir(output_dir))?;
 
     for test_name in test_names {
         println!("Preparing target directory for test: {}", test_name);
 
+        // Create test output directory (for reports)
         let test_output_dir = test_output_dir(output_dir, test_name);
         fs::create_dir_all(&test_output_dir).map_err(|e| with_path_context(e, &test_output_dir))?;
 
+        // Create test target directory in the central artifacts location
         let test_target_dir = test_target_dir(output_dir, test_name);
         fs::create_dir_all(&test_target_dir).map_err(|e| with_path_context(e, &test_target_dir))?;
 
