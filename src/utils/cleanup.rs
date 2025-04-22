@@ -1,5 +1,6 @@
 use crate::utils::paths::{test_target_dir, artifacts_dir};
 use std::fs;
+use std::io;
 use std::path::Path;
 use walkdir::WalkDir;
 
@@ -67,6 +68,25 @@ fn remove_empty_directories(path: &Path) -> bool {
     }
 }
 
+/// Clean up a single test target directory
+pub fn cleanup_single_test_dir(output_dir: &Path, test_name: &str) -> io::Result<()> {
+    let target_dir = test_target_dir(output_dir, test_name);
+    
+    if target_dir.exists() {
+        println!("Cleaning up target directory for test: {}", test_name);
+        fs::remove_dir_all(&target_dir)?;
+    }
+    
+    // Try to clean up empty parent directories
+    if let Some(parent) = target_dir.parent() {
+        if parent.exists() && is_effectively_empty(parent) {
+            let _ = remove_empty_directories(parent);
+        }
+    }
+    
+    Ok(())
+}
+
 /// Clean up target directories to save disk space
 pub fn cleanup_target_dirs(output_dir: &Path, test_names: &[String]) {
     println!("Cleaning up temporary target directories...");
@@ -74,18 +94,12 @@ pub fn cleanup_target_dirs(output_dir: &Path, test_names: &[String]) {
     let artifacts_directory = artifacts_dir(output_dir);
 
     for test_name in test_names {
-        // Remove the target directory
-        let target_dir = test_target_dir(output_dir, test_name);
-
-        if target_dir.exists() {
-            match fs::remove_dir_all(&target_dir) {
-                Ok(_) => (),
-                Err(e) => println!(
-                    "Warning: Failed to clean up '{}': {}",
-                    target_dir.display(),
-                    e
-                ),
-            }
+        // Try to clean up each test directory
+        if let Err(e) = cleanup_single_test_dir(output_dir, test_name) {
+            println!(
+                "Warning: Failed to clean up directory for test '{}': {}",
+                test_name, e
+            );
         }
     }
     

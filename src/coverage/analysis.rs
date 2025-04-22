@@ -1,12 +1,15 @@
 use crate::coverage::tarpaulin::run_isolated_test_coverage;
 use crate::types::errors::Error;
 use crate::types::models::{FileCoverageAnalysis, IsotarpAnalysis, TestCoverageAnalysis};
-use crate::utils::cleanup::cleanup_target_dirs;
+use crate::utils::cleanup::{cleanup_target_dirs, cleanup_single_test_dir};
 use crate::utils::target_symlink::prepare_target_dirs;
 use rayon::prelude::*;
+use rayon::ThreadPoolBuilder;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::process::Command;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 /// Run all tests at once using tarpaulin and process the results
 pub fn run_analysis(
@@ -36,57 +39,100 @@ pub fn run_analysis(
         return Err(Error::CommandFailed("cargo build --tests".to_string()));
     }
 
-    // Get the master target directory path
+    // Get the master target directory
     let master_target_dir = Path::new("target");
+    
+    // Create a sorted copy of test names for deterministic execution order
+    let mut ordered_tests: Vec<(usize, &String)> = test_names.iter().enumerate().collect();
+    ordered_tests.sort_by(|(_, a), (_, b)| a.cmp(b));
 
-    // Prepare copied target directories for each test
-    println!("Preparing target directories for parallel execution...");
-    let test_target_dirs =
-        prepare_target_dirs(master_target_dir, test_names, output_dir).map_err(|e| Error::Io(e))?;
+    // Prepare target directories (only as needed to reduce memory usage)
+    println!("Preparing target directories for execution...");
+    let test_target_dirs = prepare_target_dirs(master_target_dir, test_names, output_dir)?;
 
-    let mut test_coverage = HashMap::new();
+    // Configure thread pool with reasonable concurrency
+    let num_cpus = num_cpus::get();
+    let thread_count = std::cmp::min(num_cpus, 4); // Limit to 4 or CPU count, whichever is smaller
+    let pool = ThreadPoolBuilder::new()
+        .num_threads(thread_count)
+        .build()
+        .map_err(|e| Error::CommandFailed(format!("Failed to create thread pool: {}", e)))?;
 
-    // Define a closure for cleanup that we can call in multiple places
-    let cleanup = || cleanup_target_dirs(output_dir, test_names);
+    // Track progress
+    let total_tests = test_names.len();
+    let completed = Arc::new(AtomicUsize::new(0));
 
-    // Run tarpaulin for each test in parallel
-    let results: Result<Vec<(String, HashMap<String, HashSet<u64>>)>, Error> = test_names
-        .par_iter()
-        .enumerate()
-        .map(|(i, test_name)| {
-            let covered_lines = run_isolated_test_coverage(
-                package_name,
-                test_name,
-                output_dir,
-                &test_target_dirs[i],
-                true, // skip_clean is always true for parallel runs
-            )?;
-            Ok((test_name.clone(), covered_lines))
-        })
-        .collect();
-
-    // Handle the results - either populate test_coverage or return error
-    match results {
-        Ok(results_vec) => {
-            // Convert Vec to HashMap
-            for (test_name, covered_lines) in results_vec {
-                test_coverage.insert(test_name, covered_lines);
-            }
+    // Define a closure for cleanup to use in multiple places
+    let cleanup_fn = |test_name: &str| {
+        if let Err(e) = cleanup_single_test_dir(output_dir, test_name) {
+            eprintln!("Warning: Failed to clean up after test '{}': {}", test_name, e);
         }
+    };
+
+    // Process tests in parallel with controlled concurrency, collecting results
+    println!("Running tests in parallel with {} threads", thread_count);
+    println!("Processing {} tests in sorted order", total_tests);
+    
+    // Use a scoped threadpool and collect results
+    let results: Result<Vec<(String, HashMap<String, HashSet<u64>>)>, Error> = pool.install(|| {
+        ordered_tests
+            .par_iter()
+            .map(|(original_idx, test_name)| {
+                let progress = completed.fetch_add(1, Ordering::SeqCst) + 1;
+                println!(
+                    "[{}/{}] Running coverage for test: {}",
+                    progress, total_tests, test_name
+                );
+                
+                // Get the target directory for this test
+                let target_dir = &test_target_dirs[*original_idx];
+                
+                let result = run_isolated_test_coverage(
+                    package_name, 
+                    test_name, 
+                    output_dir, 
+                    target_dir, 
+                    true
+                );
+                
+                // Immediate cleanup regardless of success or failure
+                cleanup_fn(test_name);
+                
+                // Return the result paired with the test name
+                match result {
+                    Ok(covered_lines) => Ok(((*test_name).clone(), covered_lines)),
+                    Err(e) => {
+                        eprintln!("Error running test {}: {}", test_name, e);
+                        Err(e)
+                    }
+                }
+            })
+            .collect()
+    });
+
+    // Handle errors from the parallel execution
+    let collected_results = match results {
+        Ok(results_vec) => results_vec,
         Err(e) => {
-            // Clean up if there was an error during test coverage collection
-            cleanup();
+            println!("Error during test execution: {}", e);
+            // Final cleanup of any remaining directories
+            cleanup_target_dirs(output_dir, test_names);
             return Err(e);
         }
+    };
+    
+    // Convert the collected results into a HashMap
+    let mut test_coverage = HashMap::new();
+    for (test_name, coverage) in collected_results {
+        test_coverage.insert(test_name, coverage);
     }
 
-    // Analyze the collected data
+    // Final cleanup just to be sure
+    cleanup_target_dirs(output_dir, test_names);
+
+    // Generate analysis from the collected coverage data
     let analysis = analyze_test_coverage(&test_coverage);
 
-    // Clean up target directories
-    cleanup();
-
-    // Return the final analysis
     Ok(IsotarpAnalysis {
         package: package_name.to_string(),
         tests: analysis,
@@ -97,6 +143,7 @@ pub fn run_analysis(
 pub fn analyze_test_coverage(
     results: &HashMap<String, HashMap<String, HashSet<u64>>>,
 ) -> HashMap<String, TestCoverageAnalysis> {
+    // The rest of this function remains unchanged...
     let mut analysis = HashMap::new();
 
     // Get all files and lines
@@ -135,7 +182,7 @@ pub fn analyze_test_coverage(
                     if let Some(other_lines) = other_files.get(file) {
                         !other_lines.contains(line)
                     } else {
-                        true // Line is unique if other test doesn't cover this file
+                        true
                     }
                 });
 
