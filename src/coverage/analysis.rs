@@ -52,7 +52,7 @@ pub fn run_analysis(
 
     // Configure thread pool with reasonable concurrency
     let num_cpus = num_cpus::get();
-    let thread_count = std::cmp::min(num_cpus, 4); // Limit to 4 or CPU count, whichever is smaller
+    let thread_count = std::cmp::min(num_cpus, 8); // Limit to 4 or CPU count, whichever is smaller
     let pool = ThreadPoolBuilder::new()
         .num_threads(thread_count)
         .build()
