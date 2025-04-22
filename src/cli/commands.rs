@@ -77,11 +77,13 @@ pub fn execute_list_command(package: &str) -> Result<(), Box<dyn std::error::Err
 }
 
 // Categorize patterns by type for more efficient processing
-fn categorize_patterns(patterns: &[String]) -> (Vec<String>, Vec<String>, Vec<String>) {
+// Categorize patterns by type for more efficient processing
+fn categorize_patterns(patterns: &[String]) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
     let mut exact_patterns = Vec::new();
+    let mut exact_names = Vec::new();
     let mut path_wildcard_patterns = Vec::new();
     let mut name_wildcard_patterns = Vec::new();
-    
+
     for pattern in patterns {
         if pattern.contains('*') || pattern.contains('?') {
             if pattern.contains("::") {
@@ -90,11 +92,15 @@ fn categorize_patterns(patterns: &[String]) -> (Vec<String>, Vec<String>, Vec<St
                 name_wildcard_patterns.push(pattern.clone());
             }
         } else {
-            exact_patterns.push(pattern.clone());
+            if pattern.contains("::") {
+                exact_patterns.push(pattern.clone());
+            } else {
+                exact_names.push(pattern.clone());
+            }
         }
     }
-    
-    (exact_patterns, path_wildcard_patterns, name_wildcard_patterns)
+
+    (exact_patterns, exact_names, path_wildcard_patterns, name_wildcard_patterns)
 }
 
 // Main utility function to resolve test patterns to test names
@@ -106,12 +112,22 @@ pub fn resolve_test_patterns(
     let mut invalid_patterns = Vec::new();
 
     // Categorize patterns first
-    let (exact_patterns, path_wildcard_patterns, name_wildcard_patterns) = categorize_patterns(patterns);
+    let (exact_patterns, exact_names, path_wildcard_patterns, name_wildcard_patterns) = categorize_patterns(patterns);
 
     // Process exact matches first (most efficient)
     for pattern in exact_patterns {
         if available_tests.contains(&pattern) {
             selected_tests.push(pattern.clone());
+        } else {
+            invalid_patterns.push(pattern);
+        }
+    }
+
+    // Process exact name matches
+    for pattern in exact_names {
+        let matches = match_test_by_name(available_tests, &pattern);
+        if !matches.is_empty() {
+            selected_tests.extend(matches);
         } else {
             invalid_patterns.push(pattern);
         }
