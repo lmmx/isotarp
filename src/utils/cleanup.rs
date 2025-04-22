@@ -1,13 +1,13 @@
+use crate::utils::paths::test_target_dir;
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
 /// Clean up target directories to save disk space
-pub fn cleanup_target_dirs(output_dir: &PathBuf, test_names: &[String]) {
+pub fn cleanup_target_dirs(output_dir: &Path, test_names: &[String]) {
     println!("Cleaning up temporary target directories...");
 
     for test_name in test_names {
-        let test_dir = output_dir.join(test_name.replace("::", "/"));
-        let target_dir = test_dir.join("tarpaulin-target");
+        let target_dir = test_target_dir(output_dir, test_name);
 
         if target_dir.exists() {
             match fs::remove_dir_all(&target_dir) {
@@ -21,4 +21,3 @@ pub fn cleanup_target_dirs(output_dir: &PathBuf, test_names: &[String]) {
         }
     }
 }
-

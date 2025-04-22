@@ -1,33 +1,12 @@
 use crate::coverage::tarpaulin::run_isolated_test_coverage;
 use crate::types::errors::Error;
 use crate::types::models::{FileCoverageAnalysis, IsotarpAnalysis, TestCoverageAnalysis};
+use crate::utils::cleanup::cleanup_target_dirs;
 use crate::utils::target_symlink::prepare_target_dirs;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::path::Path;
 use std::process::Command;
-
-/// Clean up target directories to save disk space
-fn cleanup_target_dirs(output_dir: &Path, test_names: &[String]) {
-    println!("Cleaning up temporary target directories...");
-
-    for test_name in test_names {
-        let test_dir = output_dir.join(test_name.replace("::", "/"));
-        let target_dir = test_dir.join("tarpaulin-target");
-
-        if target_dir.exists() {
-            match fs::remove_dir_all(&target_dir) {
-                Ok(_) => (),
-                Err(e) => println!(
-                    "Warning: Failed to clean up '{}': {}",
-                    target_dir.display(),
-                    e
-                ),
-            }
-        }
-    }
-}
 
 /// Run all tests at once using tarpaulin and process the results
 pub fn run_analysis(

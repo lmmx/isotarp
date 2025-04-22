@@ -1,3 +1,4 @@
+use crate::utils::paths::{test_output_dir, test_target_dir};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -27,10 +28,10 @@ pub fn prepare_target_dirs(
     for test_name in test_names {
         println!("Preparing target directory for test: {}", test_name);
 
-        let test_output_dir = output_dir.join(test_name.replace("::", "/"));
+        let test_output_dir = test_output_dir(output_dir, test_name);
         fs::create_dir_all(&test_output_dir).map_err(|e| with_path_context(e, &test_output_dir))?;
 
-        let test_target_dir = test_output_dir.join("tarpaulin-target");
+        let test_target_dir = test_target_dir(output_dir, test_name);
         fs::create_dir_all(&test_target_dir).map_err(|e| with_path_context(e, &test_target_dir))?;
 
         // First create all directories to match master structure

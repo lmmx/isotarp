@@ -1,5 +1,6 @@
 use crate::types::errors::Error;
 use crate::types::models::{LineStat, TarpaulinReport};
+use crate::utils::paths::{test_output_dir, test_report_path};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::process::Command;
@@ -14,7 +15,7 @@ pub fn run_isolated_test_coverage(
     skip_clean: bool,
 ) -> Result<HashMap<String, HashSet<u64>>, Error> {
     // Create output directory for this test
-    let test_output_dir = output_dir.join(test_name.replace("::", "/"));
+    let test_output_dir = test_output_dir(output_dir, test_name);
     std::fs::create_dir_all(&test_output_dir).map_err(|e| {
         Error::Io(std::io::Error::new(
             e.kind(),
@@ -63,7 +64,7 @@ pub fn run_isolated_test_coverage(
     }
 
     // Read and parse the report
-    let report_path = test_output_dir.join("tarpaulin-report.json");
+    let report_path = test_report_path(output_dir, test_name);
     let report_content = std::fs::read_to_string(&report_path).map_err(|e| {
         Error::Io(std::io::Error::new(
             e.kind(),
