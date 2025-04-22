@@ -1,6 +1,7 @@
 // Public API exports
 pub mod cli;
 pub mod coverage;
+pub mod resolve;
 pub mod types;
 pub mod utils;
 

@@ -1,4 +1,4 @@
-use isotarp::cli::commands::resolve_test_patterns;
+use isotarp::resolve::resolve_test_patterns;
 
 #[test]
 fn test_exact_match() {
