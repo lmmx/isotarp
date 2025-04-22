@@ -2,8 +2,8 @@ use crate::coverage::analysis::run_analysis;
 use crate::coverage::tarpaulin::list_tests;
 use crate::resolve::resolve_test_patterns;
 use crate::utils::io::save_analysis;
+use crate::utils::cleanup::cleanup_target_dirs;
 use clap::{Parser, Subcommand};
-use std::fs;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -44,27 +44,6 @@ pub enum Commands {
         #[arg(short, long, default_value = "isotarp-analysis.json")]
         report: PathBuf,
     },
-}
-
-/// Clean up target directories to save disk space
-fn cleanup_target_dirs(output_dir: &PathBuf, test_names: &[String]) {
-    println!("Cleaning up temporary target directories...");
-
-    for test_name in test_names {
-        let test_dir = output_dir.join(test_name.replace("::", "/"));
-        let target_dir = test_dir.join("tarpaulin-target");
-
-        if target_dir.exists() {
-            match fs::remove_dir_all(&target_dir) {
-                Ok(_) => (),
-                Err(e) => println!(
-                    "Warning: Failed to clean up '{}': {}",
-                    target_dir.display(),
-                    e
-                ),
-            }
-        }
-    }
 }
 
 pub fn execute_list_command(package: &str) -> Result<(), Box<dyn std::error::Error>> {
