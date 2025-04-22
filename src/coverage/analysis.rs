@@ -8,8 +8,6 @@ use rayon::ThreadPoolBuilder;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::process::Command;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 
 /// Run all tests at once using tarpaulin and process the results
 pub fn run_analysis(
@@ -41,10 +39,6 @@ pub fn run_analysis(
 
     // Get the master target directory
     let master_target_dir = Path::new("target");
-    
-    // Create a sorted copy of test names for deterministic execution order
-    let mut ordered_tests: Vec<(usize, &String)> = test_names.iter().enumerate().collect();
-    ordered_tests.sort_by(|(_, a), (_, b)| a.cmp(b));
 
     // Prepare target directories (only as needed to reduce memory usage)
     println!("Preparing target directories for execution...");
@@ -52,7 +46,7 @@ pub fn run_analysis(
 
     // Configure thread pool with reasonable concurrency
     let num_cpus = num_cpus::get();
-    let thread_count = std::cmp::min(num_cpus, 8); // Limit to 4 or CPU count, whichever is smaller
+    let thread_count = std::cmp::min(num_cpus, 8); // Limit to 8 or CPU count, whichever is smaller
     let pool = ThreadPoolBuilder::new()
         .num_threads(thread_count)
         .build()
@@ -60,7 +54,6 @@ pub fn run_analysis(
 
     // Track progress
     let total_tests = test_names.len();
-    let completed = Arc::new(AtomicUsize::new(0));
 
     // Define a closure for cleanup to use in multiple places
     let cleanup_fn = |test_name: &str| {
@@ -72,35 +65,39 @@ pub fn run_analysis(
     // Process tests in parallel with controlled concurrency, collecting results
     println!("Running tests in parallel with {} threads", thread_count);
     println!("Processing {} tests in sorted order", total_tests);
-    
+
     // Use a scoped threadpool and collect results
+    // Using par_bridge to maintain ordering
     let results: Result<Vec<(String, HashMap<String, HashSet<u64>>)>, Error> = pool.install(|| {
-        ordered_tests
-            .par_iter()
-            .map(|(original_idx, test_name)| {
-                let progress = completed.fetch_add(1, Ordering::SeqCst) + 1;
+        test_names
+            .iter()
+            .enumerate()
+            .par_bridge()
+            .map(|(idx, test_name)| {
+                // Display progress with the correct sequential numbering
                 println!(
                     "[{}/{}] Running coverage for test: {}",
-                    progress, total_tests, test_name
+                    idx + 1, total_tests, test_name
                 );
-                
+
                 // Get the target directory for this test
-                let target_dir = &test_target_dirs[*original_idx];
-                
+                let target_dir = &test_target_dirs[idx];
+
+                println!("Running coverage for test: {}", test_name);
                 let result = run_isolated_test_coverage(
-                    package_name, 
-                    test_name, 
-                    output_dir, 
-                    target_dir, 
+                    package_name,
+                    test_name,
+                    output_dir,
+                    target_dir,
                     true
                 );
-                
+
                 // Immediate cleanup regardless of success or failure
                 cleanup_fn(test_name);
-                
+
                 // Return the result paired with the test name
                 match result {
-                    Ok(covered_lines) => Ok(((*test_name).clone(), covered_lines)),
+                    Ok(covered_lines) => Ok((test_name.clone(), covered_lines)),
                     Err(e) => {
                         eprintln!("Error running test {}: {}", test_name, e);
                         Err(e)
@@ -120,7 +117,7 @@ pub fn run_analysis(
             return Err(e);
         }
     };
-    
+
     // Convert the collected results into a HashMap
     let mut test_coverage = HashMap::new();
     for (test_name, coverage) in collected_results {
