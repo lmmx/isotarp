@@ -10,7 +10,7 @@ wildmatch = "2.4.0"
 
 [package]
 name = "isotarp"
-version = "0.0.7"
+version = "0.0.8"
 edition = "2024"
 authors = ["Louis Maddox <louismmx@gmail.com>"]
 rust-version = "1.86.0"
