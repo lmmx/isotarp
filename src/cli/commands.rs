@@ -117,35 +117,62 @@ pub fn execute_analyze_command(
     println!("Analysis complete! Results saved to {}", report.display());
 
     // Print a summary of the results
-    let mut tests_by_unique: Vec<_> = analysis.tests.iter().collect();
-    tests_by_unique.sort_by(|a, b| b.1.unique_covered_lines.cmp(&a.1.unique_covered_lines));
+    let tests_by_unique: Vec<_> = analysis.tests.iter().collect();
 
-    println!("\nTests ranked by unique line coverage:");
+    // Separate tests into categories
+    let mut tests_with_unique_coverage = Vec::new();
+    let mut tests_with_zero_unique_coverage = Vec::new();
+    let mut tests_with_zero_total_coverage = Vec::new();
+
     for (test_name, stats) in tests_by_unique {
-        let unique_pct = if stats.total_covered_lines > 0 {
-            (stats.unique_covered_lines as f64 / stats.total_covered_lines as f64) * 100.0
+        if stats.unique_covered_lines > 0 {
+            tests_with_unique_coverage.push((test_name, stats));
+        } else if stats.total_covered_lines > 0 {
+            tests_with_zero_unique_coverage.push((test_name, stats));
         } else {
-            0.0
-        };
-
-        println!(
-            "  {}: {} unique lines ({:.1}% of {} total covered lines)",
-            test_name, stats.unique_covered_lines, unique_pct, stats.total_covered_lines
-        );
+            tests_with_zero_total_coverage.push((test_name, stats));
+        }
     }
 
-    // Find tests with no unique coverage
-    let no_unique = analysis
-        .tests
-        .iter()
-        .filter(|(_, stats)| stats.unique_covered_lines == 0)
-        .map(|(name, _)| name)
-        .collect::<Vec<_>>();
+    // Sort tests with unique coverage by number of unique lines (descending)
+    tests_with_unique_coverage
+        .sort_by(|a, b| b.1.unique_covered_lines.cmp(&a.1.unique_covered_lines));
 
-    if !no_unique.is_empty() {
-        println!("\nTests with NO unique coverage:");
-        for test in no_unique {
-            println!("  {}", test);
+    // Display tests with unique coverage
+    if !tests_with_unique_coverage.is_empty() {
+        println!("\nTests with unique line coverage:");
+        for (test_name, stats) in &tests_with_unique_coverage {
+            let unique_pct =
+                (stats.unique_covered_lines as f64 / stats.total_covered_lines as f64) * 100.0;
+            println!(
+                "  {}: {} unique lines ({:.1}% of {} total covered lines)",
+                test_name, stats.unique_covered_lines, unique_pct, stats.total_covered_lines
+            );
+        }
+    }
+
+    // Display tests with no unique coverage but some total coverage
+    if !tests_with_zero_unique_coverage.is_empty() {
+        println!(
+            "\nTests with NO unique coverage (but covering {} total lines):",
+            tests_with_zero_unique_coverage
+                .iter()
+                .map(|(_, stats)| stats.total_covered_lines)
+                .sum::<u32>()
+        );
+        for (test_name, stats) in &tests_with_zero_unique_coverage {
+            println!(
+                "  {}: 0 unique lines (covers {} total lines)",
+                test_name, stats.total_covered_lines
+            );
+        }
+    }
+
+    // Display tests with zero total coverage
+    if !tests_with_zero_total_coverage.is_empty() {
+        println!("\nTests with NO code coverage:");
+        for (test_name, _) in &tests_with_zero_total_coverage {
+            println!("  {}", test_name);
         }
     }
 

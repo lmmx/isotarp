@@ -21,10 +21,9 @@ src/
 1 directory, 1 file
 ```
 
-The file contains:
+The file `lib.rs` contains:
 
 ```rust
-louis 🌟 ~/lab/isotarp/demolib $ cat src/lib.rs
 pub fn foo() -> i32 {
     println!("This is foo function");
     42
@@ -63,7 +62,7 @@ No specific tests provided, analyzing all tests...
 Analyzing 2 tests in package 'demolib'
 Cleaning and building package...
      Removed 41 files, 6.9MiB total
-   Compiling demolib v0.1.0 (/home/louis/lab/isotarp/demolib)
+   Compiling demolib v0.1.0 (/home/louis/dev/isotarp/tests/fixtures/demolib)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
 Preparing target directories for parallel execution...
 Preparing target directory for test: tests::test_foo
@@ -73,11 +72,10 @@ Running coverage for test: tests::test_not_bar
 Cleaning up temporary target directories...
 Analysis complete! Results saved to isotarp-analysis.json
 
-Tests ranked by unique line coverage:
+Tests with unique line coverage:
   tests::test_foo: 2 unique lines (100.0% of 2 total covered lines)
-  tests::test_not_bar: 0 unique lines (0.0% of 0 total covered lines)
 
-Tests with NO unique coverage:
+Tests with NO code coverage:
   tests::test_not_bar
 Cleaning up temporary target directories...
 ```
@@ -92,7 +90,7 @@ isotarp analyze -p demolib -t test_foo
 Analyzing 1 tests in package 'demolib'
 Cleaning and building package...
      Removed 28 files, 6.8MiB total
-   Compiling demolib v0.1.0 (/home/louis/lab/isotarp/demolib)
+   Compiling demolib v0.1.0 (/home/louis/dev/isotarp/tests/fixtures/demolib)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
 Preparing target directories for parallel execution...
 Preparing target directory for test: test_foo
@@ -100,7 +98,7 @@ Running coverage for test: test_foo
 Cleaning up temporary target directories...
 Analysis complete! Results saved to isotarp-analysis.json
 
-Tests ranked by unique line coverage:
+Tests with unique line coverage:
   test_foo: 2 unique lines (100.0% of 2 total covered lines)
 Cleaning up temporary target directories...
 ```
@@ -115,7 +113,7 @@ isotarp analyze -p demolib -t test_not_bar
 Analyzing 1 tests in package 'demolib'
 Cleaning and building package...
      Removed 28 files, 6.8MiB total
-   Compiling demolib v0.1.0 (/home/louis/lab/isotarp/demolib)
+   Compiling demolib v0.1.0 (/home/louis/dev/isotarp/tests/fixtures/demolib)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
 Preparing target directories for parallel execution...
 Preparing target directory for test: test_not_bar
@@ -123,10 +121,7 @@ Running coverage for test: test_not_bar
 Cleaning up temporary target directories...
 Analysis complete! Results saved to isotarp-analysis.json
 
-Tests ranked by unique line coverage:
-  test_not_bar: 0 unique lines (0.0% of 0 total covered lines)
-
-Tests with NO unique coverage:
+Tests with NO code coverage:
   test_not_bar
 Cleaning up temporary target directories...
 ```
