@@ -1,1 +1,11 @@
-repos: []
+repos:
+  - repo: local
+    hooks:
+    - id: justness
+      name: justing
+      description: Run just
+      entry: just
+      language: system
+      types: [rust]
+      pass_filenames: false
+      args: []
