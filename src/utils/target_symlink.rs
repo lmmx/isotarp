@@ -1,6 +1,7 @@
 use crate::utils::paths::{artifacts_dir, test_output_dir, test_target_dir};
 use std::fs;
 use std::io;
+#[cfg(unix)]
 use std::os::unix::fs as unix_fs; // For Unix-like systems (Linux, macOS)
 #[cfg(windows)]
 use std::os::windows::fs as windows_fs; // For Windows systems
