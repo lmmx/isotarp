@@ -1,7 +1,7 @@
 use crate::coverage::tarpaulin::run_isolated_test_coverage;
 use crate::types::errors::Error;
 use crate::types::models::{
-    FileCoverageAnalysis, IsotarpAnalysis, TargetMode, TestCoverageAnalysis,
+    FileCoverageAnalysis, IsotarpAnalysis, TargetMode, TestCoverageAnalysis, TestCoverageResult,
 };
 use crate::utils::cleanup::{cleanup_single_test_dir, cleanup_target_dirs};
 use crate::utils::pipeline::TargetPipeline;
@@ -83,47 +83,46 @@ pub fn run_analysis(
 
             // Use a scoped threadpool and collect results
             // Using par_bridge to maintain ordering
-            let results: Result<Vec<(String, HashMap<String, HashSet<u64>>)>, Error> = pool
-                .install(|| {
-                    test_names
-                        .iter()
-                        .enumerate()
-                        .par_bridge()
-                        .map(|(idx, test_name)| {
-                            // Display progress with the correct sequential numbering
-                            println!(
-                                "[{}/{}] Running coverage for test: {}",
-                                idx + 1,
-                                total_tests,
-                                test_name
-                            );
+            let results: Result<Vec<TestCoverageResult>, Error> = pool.install(|| {
+                test_names
+                    .iter()
+                    .enumerate()
+                    .par_bridge()
+                    .map(|(idx, test_name)| {
+                        // Display progress with the correct sequential numbering
+                        println!(
+                            "[{}/{}] Running coverage for test: {}",
+                            idx + 1,
+                            total_tests,
+                            test_name
+                        );
 
-                            // Get the target directory for this test
-                            let target_dir = &test_target_dirs[idx];
+                        // Get the target directory for this test
+                        let target_dir = &test_target_dirs[idx];
 
-                            println!("Running coverage for test: {}", test_name);
-                            let result = run_isolated_test_coverage(
-                                package_name,
-                                test_name,
-                                output_dir,
-                                target_dir,
-                                true,
-                            );
+                        println!("Running coverage for test: {}", test_name);
+                        let result = run_isolated_test_coverage(
+                            package_name,
+                            test_name,
+                            output_dir,
+                            target_dir,
+                            true,
+                        );
 
-                            // Immediate cleanup regardless of success or failure
-                            cleanup_fn(test_name);
+                        // Immediate cleanup regardless of success or failure
+                        cleanup_fn(test_name);
 
-                            // Return the result paired with the test name
-                            match result {
-                                Ok(covered_lines) => Ok((test_name.clone(), covered_lines)),
-                                Err(e) => {
-                                    eprintln!("Error running test {}: {}", test_name, e);
-                                    Err(e)
-                                }
+                        // Return the result paired with the test name
+                        match result {
+                            Ok(covered_lines) => Ok((test_name.clone(), covered_lines)),
+                            Err(e) => {
+                                eprintln!("Error running test {}: {}", test_name, e);
+                                Err(e)
                             }
-                        })
-                        .collect()
-                });
+                        }
+                    })
+                    .collect()
+            });
 
             // Handle errors from the parallel execution
             collected_results = match results {

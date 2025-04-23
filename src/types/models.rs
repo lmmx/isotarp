@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+pub type TestCoverageResult = (String, HashMap<String, HashSet<u64>>);
+
 /// Representation of Tarpaulin's JSON output
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TarpaulinReport {
