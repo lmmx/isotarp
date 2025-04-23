@@ -76,8 +76,7 @@ pub fn run_isolated_test_coverage(
         ))
     })?;
 
-    let report: TarpaulinReport = serde_json::from_str(&report_content)
-        .map_err(|e| Error::Json(serde_json::Error::from(e)))?;
+    let report: TarpaulinReport = serde_json::from_str(&report_content).map_err(Error::Json)?;
 
     // Extract the covered lines
     let covered_lines = extract_covered_lines(&report, package_name);
@@ -135,7 +134,7 @@ pub fn list_tests(package_name: &str) -> Result<Vec<String>, Error> {
         )));
     }
 
-    let output_str = String::from_utf8(output.stdout).map_err(|e| Error::Utf8(e))?;
+    let output_str = String::from_utf8(output.stdout).map_err(Error::Utf8)?;
 
     // Parse the output to extract test names
     let tests: Vec<String> = output_str

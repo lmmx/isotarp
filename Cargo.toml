@@ -19,3 +19,8 @@ repository = "https://github.com/lmmx/isotarp"
 description = "Identify which tests provide code coverage of which lines, uniquness, and redundancy"
 keywords = ["isotarp", "tarpaulin", "testing", "coverage"]
 categories = ["development-tools", "development-tools::testing"]
+
+[dev-dependencies]
+cargo-husky = { version = "1.5.0", default-features = false, features = [
+    "user-hooks",
+] }
