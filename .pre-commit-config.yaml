@@ -1,11 +1,30 @@
+fail_fast: true
+
 repos:
   - repo: local
     hooks:
-    - id: justness
-      name: justing
-      description: Run just
-      entry: just
-      language: system
-      types: [rust]
-      pass_filenames: false
-      args: []
+      - id: cargo-binstall-bootstrap
+        name: Bootstrap cargo-binstall
+        language: system
+        entry: |
+          bash -c '
+            if ! cargo-binstall -V >/dev/null 2>&1; then
+              echo "Installing cargo-binstall..."
+              curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+            fi
+          '
+        pass_filenames: false
+        always_run: true
+      
+      - id: just-bootstrap
+        name: Bootstrap just
+        language: system
+        entry: |
+          bash -c '
+            if ! just -V >/dev/null 2>&1; then
+              echo "Installing just..."
+              cargo binstall --no-confirm just
+            fi
+          '
+        pass_filenames: false
+        always_run: true
