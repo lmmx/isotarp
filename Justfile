@@ -10,9 +10,6 @@ set dotenv-load
 
 default: precommit prepush
 
-hello message="world":
-  echo "Hello {{ message }}"
-
 precommit: code-quality
 prepush: clippy test
 
