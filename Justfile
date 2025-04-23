@@ -43,6 +43,7 @@ doc-tests-ci *args:
     cmd_group "cargo test --doc {{args}}"
 
 code-quality:
+    taplo lint
     taplo format --check
     cargo fmt --check --all
 
