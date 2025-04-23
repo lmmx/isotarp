@@ -56,9 +56,10 @@ pub struct IsotarpAnalysis {
 }
 
 /// Mode for managing target directories during test execution
-#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 pub enum TargetMode {
     /// Create a separate target directory for each test (more disk space, parallel execution)
+    #[default]
     Per,
     /// Reuse a single target directory for all tests (less disk space, sequential execution)
     One,
@@ -70,11 +71,5 @@ impl std::fmt::Display for TargetMode {
             TargetMode::Per => write!(f, "per"),
             TargetMode::One => write!(f, "one"),
         }
-    }
-}
-
-impl Default for TargetMode {
-    fn default() -> Self {
-        TargetMode::Per
     }
 }
