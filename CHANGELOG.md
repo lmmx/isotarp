@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/lmmx/isotarp/compare/v0.1.2...v0.1.3) - 2025-04-23
+
+### Other
+
+- *(ci)* release binaries ([#10](https://github.com/lmmx/isotarp/pull/10))
+- use paragraphs ([#9](https://github.com/lmmx/isotarp/pull/9))
+- remove metaphor ([#7](https://github.com/lmmx/isotarp/pull/7))
+
 ## [0.1.2](https://github.com/lmmx/isotarp/compare/v0.1.1...v0.1.2) - 2025-04-23
 
 ### Other
