@@ -17,7 +17,7 @@ fn test_coverage_analysis_demo_lib() {
     // Build the demo library first to ensure it's working
     let build_output = Command::new("cargo")
         .current_dir(&demo_lib_dir)
-        .args(&["test", "--no-run"])
+        .args(["test", "--no-run"])
         .output()
         .expect("Failed to build demo library");
 
@@ -41,7 +41,7 @@ fn test_coverage_analysis_demo_lib() {
     // Run the isotarp command with the current working directory set to the demo lib directory
     let analyze_output = Command::new(isotarp_bin)
         .current_dir(&demo_lib_dir) // Set the working directory
-        .args(&[
+        .args([
             "analyze",
             "-p",
             "demolib",

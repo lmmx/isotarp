@@ -5,7 +5,7 @@ use crate::types::models::TargetMode;
 use crate::utils::cleanup::cleanup_target_dirs;
 use crate::utils::io::save_analysis;
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(
@@ -66,8 +66,8 @@ pub fn execute_list_command(package: &str) -> Result<(), Box<dyn std::error::Err
 pub fn execute_analyze_command(
     package: &str,
     tests: Option<Vec<String>>,
-    output_dir: &PathBuf,
-    report: &PathBuf,
+    output_dir: &Path,
+    report: &Path,
     target_mode: TargetMode,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Create the output directory if it doesn't exist
