@@ -13,8 +13,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             tests,
             output_dir,
             report,
+            target_mode,
         } => {
-            execute_analyze_command(&package, tests, &output_dir, &report)?;
+            execute_analyze_command(&package, tests, &output_dir, &report, target_mode)?;
         }
     }
 

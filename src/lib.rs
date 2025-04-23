@@ -11,4 +11,6 @@ pub use coverage::tarpaulin::{extract_covered_lines, run_isolated_test_coverage}
 pub use types::errors::Error;
 pub use types::models::*;
 pub use utils::io::save_analysis;
-pub use utils::paths::{test_name_to_path_segment, test_output_dir, test_target_dir, test_report_path, artifacts_dir};
+pub use utils::paths::{
+    artifacts_dir, test_name_to_path_segment, test_output_dir, test_report_path, test_target_dir,
+};
