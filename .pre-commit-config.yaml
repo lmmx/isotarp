@@ -2,6 +2,6 @@ fail_fast: true
 
 repos:
   - repo: https://github.com/lmmx/just-pre-commit
-    rev: v0.1.9
+    rev: v0.2.0
     hooks:
       - id: ensure-just
