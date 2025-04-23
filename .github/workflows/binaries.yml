@@ -1,4 +1,4 @@
-name: CD # Continuous Deployment
+name: Release Binary CD
 
 permissions:
   contents: write

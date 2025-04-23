@@ -1,5 +1,6 @@
 # Isotarp
 
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lmmx/isotarp/binaries.yml)](https://github.com/lmmx/isotarp/actions/workflows/binaries.yml)
 [![crates.io](https://img.shields.io/crates/v/isotarp.svg)](https://crates.io/crates/isotarp)
 [![documentation](https://docs.rs/isotarp/badge.svg)](https://docs.rs/isotarp)
 [![MIT/Apache-2.0 licensed](https://img.shields.io/crates/l/isotarp.svg)](./LICENSE)
