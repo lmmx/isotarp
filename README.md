@@ -1,5 +1,9 @@
 # Isotarp
 
+[![crates.io](https://img.shields.io/crates/v/isotarp.svg)](https://crates.io/crates/isotarp)
+[![documentation](https://docs.rs/isotarp/badge.svg)](https://docs.rs/isotarp)
+[![MIT/Apache-2.0 licensed](https://img.shields.io/crates/l/isotarp.svg)](./LICENSE)
+
 Isotarp is a tool to help Rust developers identify which tests provide unique code coverage. Think of it as an "isotope analyser" for cargo-tarpaulin.
 
 ## Motivation
