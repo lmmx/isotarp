@@ -16,12 +16,10 @@ fn categorize_patterns(
             } else {
                 name_wildcard_patterns.push(pattern.clone());
             }
+        } else if pattern.contains("::") {
+            exact_patterns.push(pattern.clone());
         } else {
-            if pattern.contains("::") {
-                exact_patterns.push(pattern.clone());
-            } else {
-                exact_names.push(pattern.clone());
-            }
+            exact_names.push(pattern.clone());
         }
     }
 
