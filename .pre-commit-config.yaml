@@ -1,11 +1,6 @@
 fail_fast: true
 
 repos:
-  - repo: local
+  - repo: https://github.com/lmmx/just-pre-commit
     hooks:
-      - id: just-bootstrap
-        name: Bootstrap just
-        language: system
-        entry: pip install rust-just
-        pass_filenames: false
-        always_run: true
+      - id: ensure-just
