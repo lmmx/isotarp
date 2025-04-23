@@ -84,3 +84,74 @@ docs:
 
 lockfile:
     cargo update --workspace --locked
+
+# Test if code will build (compile only, no linking) for a specific target
+test-build-target target:
+    cargo check --release --bin isotarp --target {{target}}
+
+# Test if Windows builds will compile (no linking)
+test-windows-build:
+    #!/usr/bin/env -S bash -euo pipefail
+    echo -e "\033[1;33m🏗️ Testing Windows builds (compile only)...\033[0m"
+
+    echo -e "\033[1;36m📦 Testing x86_64-pc-windows-msvc...\033[0m"
+    just test-build-target x86_64-pc-windows-msvc
+
+    echo -e "\033[1;36m📦 Testing aarch64-pc-windows-msvc...\033[0m"
+    just test-build-target aarch64-pc-windows-msvc
+
+    echo -e "\033[1;32m✅ Windows builds compilation check completed!\033[0m"
+
+# Test if Apple/macOS builds will compile (no linking)
+test-apple-build:
+    #!/usr/bin/env -S bash -euo pipefail
+    echo -e "\033[1;33m🏗️ Testing Apple/macOS builds (compile only)...\033[0m"
+
+    echo -e "\033[1;36m📦 Testing x86_64-apple-darwin...\033[0m"
+    just test-build-target x86_64-apple-darwin
+
+    echo -e "\033[1;36m📦 Testing aarch64-apple-darwin...\033[0m"
+    just test-build-target aarch64-apple-darwin
+
+    echo -e "\033[1;32m✅ Apple builds compilation check completed!\033[0m"
+
+# Test if Linux builds will compile (no linking)
+test-linux-build:
+    #!/usr/bin/env -S bash -euo pipefail
+    echo -e "\033[1;33m🏗️ Testing Linux builds (compile only)...\033[0m"
+
+    echo -e "\033[1;36m📦 Testing x86_64-unknown-linux-gnu...\033[0m"
+    just test-build-target x86_64-unknown-linux-gnu
+
+    echo -e "\033[1;36m📦 Testing x86_64-unknown-linux-musl...\033[0m"
+    just test-build-target x86_64-unknown-linux-musl
+
+    echo -e "\033[1;36m📦 Testing aarch64-unknown-linux-gnu...\033[0m"
+    just test-build-target aarch64-unknown-linux-gnu
+
+    echo -e "\033[1;36m📦 Testing aarch64-unknown-linux-musl...\033[0m"
+    just test-build-target aarch64-unknown-linux-musl
+
+    echo -e "\033[1;32m✅ Linux builds compilation check completed!\033[0m"
+
+# Test if FreeBSD build will compile (no linking)
+test-freebsd-build:
+    #!/usr/bin/env -S bash -euo pipefail
+    echo -e "\033[1;33m🏗️ Testing FreeBSD build (compile only)...\033[0m"
+
+    echo -e "\033[1;36m📦 Testing x86_64-unknown-freebsd...\033[0m"
+    just test-build-target x86_64-unknown-freebsd
+
+    echo -e "\033[1;32m✅ FreeBSD build compilation check completed!\033[0m"
+
+# Test if all targets will compile (no linking)
+test-all-builds:
+    #!/usr/bin/env -S bash -euo pipefail
+    echo -e "\033[1;33m🏗️ Testing all targets (compile only)...\033[0m"
+
+    just test-linux-build
+    just test-apple-build
+    just test-windows-build
+    just test-freebsd-build
+
+    echo -e "\033[1;32m✅ All target builds compilation check completed!\033[0m"
