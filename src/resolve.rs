@@ -1,7 +1,9 @@
 use wildmatch::WildMatch;
 
 // Categorize patterns by type for more efficient processing
-fn categorize_patterns(patterns: &[String]) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
+fn categorize_patterns(
+    patterns: &[String],
+) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
     let mut exact_patterns = Vec::new();
     let mut exact_names = Vec::new();
     let mut path_wildcard_patterns = Vec::new();
@@ -23,19 +25,25 @@ fn categorize_patterns(patterns: &[String]) -> (Vec<String>, Vec<String>, Vec<St
         }
     }
 
-    (exact_patterns, exact_names, path_wildcard_patterns, name_wildcard_patterns)
+    (
+        exact_patterns,
+        exact_names,
+        path_wildcard_patterns,
+        name_wildcard_patterns,
+    )
 }
 
 // Main utility function to resolve test patterns to test names
 pub fn resolve_test_patterns(
     available_tests: &[String],
-    patterns: &[String]
+    patterns: &[String],
 ) -> (Vec<String>, Vec<String>) {
     let mut selected_tests = Vec::new();
     let mut invalid_patterns = Vec::new();
 
     // Categorize patterns first
-    let (exact_patterns, exact_names, path_wildcard_patterns, name_wildcard_patterns) = categorize_patterns(patterns);
+    let (exact_patterns, exact_names, path_wildcard_patterns, name_wildcard_patterns) =
+        categorize_patterns(patterns);
 
     // Process exact matches first (most efficient)
     for pattern in exact_patterns {

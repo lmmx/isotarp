@@ -1,8 +1,9 @@
 use crate::coverage::analysis::run_analysis;
 use crate::coverage::tarpaulin::list_tests;
 use crate::resolve::resolve_test_patterns;
-use crate::utils::io::save_analysis;
+use crate::types::models::TargetMode;
 use crate::utils::cleanup::cleanup_target_dirs;
+use crate::utils::io::save_analysis;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
@@ -10,7 +11,8 @@ use std::path::PathBuf;
 #[command(
     name = "isotarp",
     about = "Analyze test coverage at the individual test level",
-    version
+    version,
+    long_about = "Isotarp identifies which tests provide unique code coverage by running each test through cargo-tarpaulin individually and analyzing the results."
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -43,6 +45,11 @@ pub enum Commands {
         /// Output file for the analysis result
         #[arg(short, long, default_value = "isotarp-analysis.json")]
         report: PathBuf,
+
+        /// Target directory mode: "per" creates a separate target dir for each test (default),
+        /// "one" reuses a single target dir sequentially (saves disk space but may be slower)
+        #[arg(short = 'm', long, default_value_t = TargetMode::default(), value_name="MODE")]
+        target_mode: TargetMode,
     },
 }
 
@@ -61,6 +68,7 @@ pub fn execute_analyze_command(
     tests: Option<Vec<String>>,
     output_dir: &PathBuf,
     report: &PathBuf,
+    target_mode: TargetMode,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Create the output directory if it doesn't exist
     std::fs::create_dir_all(output_dir)?;
@@ -93,13 +101,14 @@ pub fn execute_analyze_command(
     };
 
     println!(
-        "Analyzing {} tests in package '{}'",
+        "Analyzing {} tests in package '{}' using target mode: {}",
         test_names.len(),
-        package
+        package,
+        target_mode
     );
 
     // Run the analysis with cleanup in case of error
-    let result = run_analysis(package, &test_names, output_dir);
+    let result = run_analysis(package, &test_names, output_dir, target_mode);
 
     // Handle the result
     let analysis = match result {

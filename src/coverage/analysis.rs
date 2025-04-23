@@ -1,10 +1,13 @@
 use crate::coverage::tarpaulin::run_isolated_test_coverage;
 use crate::types::errors::Error;
-use crate::types::models::{FileCoverageAnalysis, IsotarpAnalysis, TestCoverageAnalysis};
-use crate::utils::cleanup::{cleanup_target_dirs, cleanup_single_test_dir};
+use crate::types::models::{
+    FileCoverageAnalysis, IsotarpAnalysis, TargetMode, TestCoverageAnalysis,
+};
+use crate::utils::cleanup::{cleanup_single_test_dir, cleanup_target_dirs};
+use crate::utils::pipeline::TargetPipeline;
 use crate::utils::target_symlink::prepare_target_dirs;
-use rayon::prelude::*;
 use rayon::ThreadPoolBuilder;
+use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::process::Command;
@@ -14,6 +17,7 @@ pub fn run_analysis(
     package_name: &str,
     test_names: &[String],
     output_dir: &std::path::Path,
+    target_mode: TargetMode,
 ) -> Result<IsotarpAnalysis, Error> {
     // Create output directory
     std::fs::create_dir_all(output_dir)?;
@@ -40,92 +44,178 @@ pub fn run_analysis(
     // Get the master target directory
     let master_target_dir = Path::new("target");
 
-    // Prepare target directories (only as needed to reduce memory usage)
-    println!("Preparing target directories for execution...");
-    let test_target_dirs = prepare_target_dirs(master_target_dir, test_names, output_dir)?;
-
-    // Configure thread pool with reasonable concurrency
-    let num_cpus = num_cpus::get();
-    let thread_count = std::cmp::min(num_cpus, 8); // Limit to 8 or CPU count, whichever is smaller
-    let pool = ThreadPoolBuilder::new()
-        .num_threads(thread_count)
-        .build()
-        .map_err(|e| Error::CommandFailed(format!("Failed to create thread pool: {}", e)))?;
-
     // Track progress
     let total_tests = test_names.len();
 
-    // Define a closure for cleanup to use in multiple places
-    let cleanup_fn = |test_name: &str| {
-        if let Err(e) = cleanup_single_test_dir(output_dir, test_name) {
-            eprintln!("Warning: Failed to clean up after test '{}': {}", test_name, e);
+    // Collect the results
+    let collected_results: Vec<(String, HashMap<String, HashSet<u64>>)>;
+
+    match target_mode {
+        TargetMode::Per => {
+            // Use the original parallel approach
+            // Prepare target directories (only as needed to reduce memory usage)
+            println!("Target mode: Per - Preparing individual target directories for execution...");
+            let test_target_dirs = prepare_target_dirs(master_target_dir, test_names, output_dir)?;
+
+            // Configure thread pool with reasonable concurrency
+            let num_cpus = num_cpus::get();
+            let thread_count = std::cmp::min(num_cpus, 8); // Limit to 8 or CPU count, whichever is smaller
+            let pool = ThreadPoolBuilder::new()
+                .num_threads(thread_count)
+                .build()
+                .map_err(|e| {
+                    Error::CommandFailed(format!("Failed to create thread pool: {}", e))
+                })?;
+
+            // Define a closure for cleanup to use in multiple places
+            let cleanup_fn = |test_name: &str| {
+                if let Err(e) = cleanup_single_test_dir(output_dir, test_name) {
+                    eprintln!(
+                        "Warning: Failed to clean up after test '{}': {}",
+                        test_name, e
+                    );
+                }
+            };
+
+            // Process tests in parallel with controlled concurrency, collecting results
+            println!("Running tests in parallel with {} threads", thread_count);
+            println!("Processing {} tests in sorted order", total_tests);
+
+            // Use a scoped threadpool and collect results
+            // Using par_bridge to maintain ordering
+            let results: Result<Vec<(String, HashMap<String, HashSet<u64>>)>, Error> = pool
+                .install(|| {
+                    test_names
+                        .iter()
+                        .enumerate()
+                        .par_bridge()
+                        .map(|(idx, test_name)| {
+                            // Display progress with the correct sequential numbering
+                            println!(
+                                "[{}/{}] Running coverage for test: {}",
+                                idx + 1,
+                                total_tests,
+                                test_name
+                            );
+
+                            // Get the target directory for this test
+                            let target_dir = &test_target_dirs[idx];
+
+                            println!("Running coverage for test: {}", test_name);
+                            let result = run_isolated_test_coverage(
+                                package_name,
+                                test_name,
+                                output_dir,
+                                target_dir,
+                                true,
+                            );
+
+                            // Immediate cleanup regardless of success or failure
+                            cleanup_fn(test_name);
+
+                            // Return the result paired with the test name
+                            match result {
+                                Ok(covered_lines) => Ok((test_name.clone(), covered_lines)),
+                                Err(e) => {
+                                    eprintln!("Error running test {}: {}", test_name, e);
+                                    Err(e)
+                                }
+                            }
+                        })
+                        .collect()
+                });
+
+            // Handle errors from the parallel execution
+            collected_results = match results {
+                Ok(results_vec) => results_vec,
+                Err(e) => {
+                    println!("Error during test execution: {}", e);
+                    // Final cleanup of any remaining directories
+                    cleanup_target_dirs(output_dir, test_names);
+                    return Err(e);
+                }
+            };
+
+            // Final cleanup just to be sure
+            cleanup_target_dirs(output_dir, test_names);
         }
-    };
+        TargetMode::One => {
+            // Use the sequential pipelined approach
+            println!(
+                "Target mode: One - Using a single reused target directory (sequential execution)"
+            );
 
-    // Process tests in parallel with controlled concurrency, collecting results
-    println!("Running tests in parallel with {} threads", thread_count);
-    println!("Processing {} tests in sorted order", total_tests);
+            // Create a pipeline manager for target directories
+            let mut pipeline = TargetPipeline::new(master_target_dir, output_dir)?;
 
-    // Use a scoped threadpool and collect results
-    // Using par_bridge to maintain ordering
-    let results: Result<Vec<(String, HashMap<String, HashSet<u64>>)>, Error> = pool.install(|| {
-        test_names
-            .iter()
-            .enumerate()
-            .par_bridge()
-            .map(|(idx, test_name)| {
-                // Display progress with the correct sequential numbering
+            // Process tests sequentially with pipelined directory preparation
+            println!("Running tests sequentially with pipeline preparation");
+            println!("Processing {} tests", total_tests);
+
+            let mut results_vec = Vec::with_capacity(test_names.len());
+
+            // If we have at least one test, start preparing for it
+            if !test_names.is_empty() {
+                pipeline.prepare_next(&test_names[0])?;
+            }
+
+            // Process each test
+            for (idx, test_name) in test_names.iter().enumerate() {
+                // Display progress
                 println!(
                     "[{}/{}] Running coverage for test: {}",
-                    idx + 1, total_tests, test_name
+                    idx + 1,
+                    total_tests,
+                    test_name
                 );
 
-                // Get the target directory for this test
-                let target_dir = &test_target_dirs[idx];
+                // Get the prepared target directory
+                let target_dir = pipeline.get_ready_target_dir()?;
 
+                // If there's a next test, start preparing its directory in the background
+                if idx + 1 < test_names.len() {
+                    pipeline.prepare_next(&test_names[idx + 1])?;
+                }
+
+                // Run test coverage
                 println!("Running coverage for test: {}", test_name);
-                let result = run_isolated_test_coverage(
+                match run_isolated_test_coverage(
                     package_name,
                     test_name,
                     output_dir,
-                    target_dir,
-                    true
-                );
-
-                // Immediate cleanup regardless of success or failure
-                cleanup_fn(test_name);
-
-                // Return the result paired with the test name
-                match result {
-                    Ok(covered_lines) => Ok((test_name.clone(), covered_lines)),
+                    &target_dir,
+                    true,
+                ) {
+                    Ok(covered_lines) => {
+                        results_vec.push((test_name.clone(), covered_lines));
+                    }
                     Err(e) => {
                         eprintln!("Error running test {}: {}", test_name, e);
-                        Err(e)
+                        pipeline.cleanup()?;
+                        return Err(e);
                     }
                 }
-            })
-            .collect()
-    });
 
-    // Handle errors from the parallel execution
-    let collected_results = match results {
-        Ok(results_vec) => results_vec,
-        Err(e) => {
-            println!("Error during test execution: {}", e);
-            // Final cleanup of any remaining directories
-            cleanup_target_dirs(output_dir, test_names);
-            return Err(e);
+                // Clean up the test output directory (not the target directory)
+                if let Err(e) = cleanup_single_test_dir(output_dir, test_name) {
+                    eprintln!(
+                        "Warning: Failed to clean up after test '{}': {}",
+                        test_name, e
+                    );
+                }
+            }
+
+            // Final cleanup
+            pipeline.cleanup()?;
+            collected_results = results_vec;
         }
-    };
+    }
 
     // Convert the collected results into a HashMap
     let mut test_coverage = HashMap::new();
     for (test_name, coverage) in collected_results {
         test_coverage.insert(test_name, coverage);
     }
-
-    // Final cleanup just to be sure
-    cleanup_target_dirs(output_dir, test_names);
 
     // Generate analysis from the collected coverage data
     let analysis = analyze_test_coverage(&test_coverage);

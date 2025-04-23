@@ -1,4 +1,4 @@
-use crate::utils::paths::{test_target_dir, artifacts_dir};
+use crate::utils::paths::{artifacts_dir, test_target_dir};
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -9,7 +9,7 @@ fn is_effectively_empty(path: &Path) -> bool {
     if !path.is_dir() {
         return false;
     }
-    
+
     // If we encounter any file, the directory is not empty
     // If we encounter a non-empty directory, the directory is not empty
     for entry in WalkDir::new(path).min_depth(1) {
@@ -19,7 +19,7 @@ fn is_effectively_empty(path: &Path) -> bool {
                 if !entry.file_type().is_dir() {
                     return false;
                 }
-                
+
                 // If we found a non-empty directory, the directory is not empty
                 // We don't need to check this since we're doing a depth-first walk
                 // and will encounter files before their parent directories
@@ -30,7 +30,7 @@ fn is_effectively_empty(path: &Path) -> bool {
             }
         }
     }
-    
+
     // If we got here, there are no files, only possibly empty directories
     true
 }
@@ -40,7 +40,7 @@ fn remove_empty_directories(path: &Path) -> bool {
     if !path.is_dir() || !is_effectively_empty(path) {
         return false;
     }
-    
+
     // First remove all empty subdirectories
     if let Ok(entries) = fs::read_dir(path) {
         for entry in entries.filter_map(Result::ok) {
@@ -50,7 +50,7 @@ fn remove_empty_directories(path: &Path) -> bool {
             }
         }
     }
-    
+
     // Now try to remove this directory
     match fs::remove_dir(path) {
         Ok(_) => {
@@ -71,19 +71,19 @@ fn remove_empty_directories(path: &Path) -> bool {
 /// Clean up a single test target directory
 pub fn cleanup_single_test_dir(output_dir: &Path, test_name: &str) -> io::Result<()> {
     let target_dir = test_target_dir(output_dir, test_name);
-    
+
     if target_dir.exists() {
         println!("Cleaning up target directory for test: {}", test_name);
         fs::remove_dir_all(&target_dir)?;
     }
-    
+
     // Try to clean up empty parent directories
     if let Some(parent) = target_dir.parent() {
         if parent.exists() && is_effectively_empty(parent) {
             let _ = remove_empty_directories(parent);
         }
     }
-    
+
     Ok(())
 }
 
@@ -102,7 +102,7 @@ pub fn cleanup_target_dirs(output_dir: &Path, test_names: &[String]) {
             );
         }
     }
-    
+
     // Clean up any empty directories in the artifacts directory
     if artifacts_directory.exists() {
         remove_empty_directories(&artifacts_directory);

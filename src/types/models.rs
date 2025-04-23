@@ -54,3 +54,27 @@ pub struct IsotarpAnalysis {
     pub package: String,
     pub tests: HashMap<String, TestCoverageAnalysis>,
 }
+
+/// Mode for managing target directories during test execution
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum TargetMode {
+    /// Create a separate target directory for each test (more disk space, parallel execution)
+    Per,
+    /// Reuse a single target directory for all tests (less disk space, sequential execution)
+    One,
+}
+
+impl std::fmt::Display for TargetMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TargetMode::Per => write!(f, "per"),
+            TargetMode::One => write!(f, "one"),
+        }
+    }
+}
+
+impl Default for TargetMode {
+    fn default() -> Self {
+        TargetMode::Per
+    }
+}

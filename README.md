@@ -62,6 +62,25 @@ You can customize output locations:
 isotarp analyze -p your_package_name -o ./coverage -r coverage-report.json
 ```
 
+### Target Directory Modes
+
+Isotarp offers two modes for managing target directories during test execution:
+
+```bash
+# Default mode: creates separate target directories for each test (faster, more disk space)
+isotarp analyze -p your_package_name --target-mode per
+
+# Memory-efficient mode: reuses a single target directory (slower, less disk space)
+isotarp analyze -p your_package_name --target-mode one
+```
+
+The `--target-mode` option accepts two values:
+
+- `per` (default): Creates a separate target directory for each test, allowing parallel execution for faster results but requiring more disk space.
+- `one`: Reuses a single target directory across tests sequentially, significantly reducing disk usage at the cost of some execution speed.
+
+For large projects where target directories can grow to multiple GB, the `one` mode can reduce peak disk usage by 80-90% while only increasing execution time by about 50%.
+
 ## How It Works
 
 Isotarp runs each test individually through cargo-tarpaulin to generate coverage data, then:
@@ -69,6 +88,14 @@ Isotarp runs each test individually through cargo-tarpaulin to generate coverage
 1. Collects which lines are covered by each test
 2. Identifies lines uniquely covered by a specific test
 3. Generates a comprehensive report showing which tests provide unique coverage
+
+### Target Mode Implementation Details
+
+- **Per Mode**: Creates individual copies of the target directory for each test, allowing parallel execution.
+- **One Mode**: Uses a pipelined approach where:
+  - A single target directory location is reused for all tests
+  - The next test's directory is prepared in the background while the current test runs
+  - Tests execute sequentially to avoid conflicts while minimizing wait time
 
 ## Output Format
 
@@ -91,6 +118,22 @@ Tests ranked by unique line coverage:
 Tests with NO unique coverage:
   unit::helpers::test_validation
 ```
+
+## Performance Considerations
+
+Choose the appropriate target mode based on your environment:
+
+- Use `--target-mode per` (default) when:
+  - You have plenty of disk space
+  - You want the fastest possible execution
+  - You're running on a system with multiple cores
+
+- Use `--target-mode one` when:
+  - Disk space is limited
+  - Your project has a large target directory
+  - You're willing to trade some speed for reduced disk usage
+
+In our testing, for a project with 6 tests generating 3GB peak disk usage in the default mode, switching to `--target-mode one` reduced peak usage to 0.5-0.7GB while increasing execution time by approximately 50%.
 
 ## License
 
