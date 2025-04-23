@@ -23,7 +23,7 @@ defaults:
 jobs:
   upload-assets:
     name: ${{ matrix.target }}
-    if: github.repository_owner == 'lmmx' && startsWith(github.event.release.name, 'isotarp-v')
+    if: github.repository_owner == 'lmmx' && startsWith(github.event.release.name, 'v')
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
