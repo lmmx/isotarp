@@ -5,18 +5,7 @@ repos:
     hooks:
       - id: just-bootstrap
         name: Bootstrap just
-        language: rust
-        types: [rust]
-        entry: |
-          bash -c '
-            if ! cargo-binstall -V >/dev/null 2>&1; then
-              echo "Installing cargo-binstall..."
-              curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-            fi
-            if ! just -V >/dev/null 2>&1; then
-              echo "Installing just..."
-              cargo binstall --no-confirm just
-            fi
-          '
+        language: system
+        entry: pip install rust-just
         pass_filenames: false
         always_run: true
