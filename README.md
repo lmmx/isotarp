@@ -14,7 +14,9 @@ When writing tests to improve code coverage, it's valuable to know:
 2. Which tests provide unique coverage (covering lines that no other test covers)
 3. Which tests might be redundant from a coverage perspective
 
-Cargo-tarpaulin is excellent for measuring overall coverage, but doesn't provide this test-specific information. Isotarp fills this gap, by doing the slightly awkward dance of enumerating all the tests, running cargo tarpaulin for each of them, filtering the results so as to not produce tons of JSON in the process.
+Cargo-tarpaulin is excellent for measuring overall coverage, but doesn't provide this test-specific information.
+
+Isotarp fills this gap, by doing the slightly awkward dance of enumerating all the tests, running cargo tarpaulin for each of them, filtering the results so as to not produce tons of JSON in the process.
 
 ## Installation
 
