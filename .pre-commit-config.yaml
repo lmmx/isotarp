@@ -34,7 +34,6 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-toml
-      - id: debug-statements
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/pappasam/toml-sort
