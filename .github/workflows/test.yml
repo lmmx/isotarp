@@ -34,7 +34,6 @@ jobs:
           cargo llvm-cov report --doctests --lcov --output-path coverage/lcov.info
 
       - name: ✨ Publish to Coveralls
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: coverage/lcov.info
