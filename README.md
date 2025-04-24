@@ -1,6 +1,6 @@
 # Isotarp
 
-[![Coverage Status](https://coveralls.io/repos/github/lmmx/isotarp/badge.svg?branch=master)](https://coveralls.io/github/lmmx/isotarp?branch=master)
+[![Coverage Status](https://codecov.io/gh/lmmx/isotarp/graph/badge.svg?token=UCFLM1MD9D)](https://codecov.io/gh/lmmx/isotarp)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lmmx/isotarp/binaries.yml)](https://github.com/lmmx/isotarp/actions/workflows/binaries.yml)
 [![crates.io](https://img.shields.io/crates/v/isotarp.svg)](https://crates.io/crates/isotarp)
 [![documentation](https://docs.rs/isotarp/badge.svg)](https://docs.rs/isotarp)
