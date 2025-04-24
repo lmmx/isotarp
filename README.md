@@ -142,7 +142,7 @@ Choose the appropriate target mode based on your environment:
   - Your project has a large target directory
   - You're willing to trade some speed for reduced disk usage
 
-In our testing, for a project with 6 tests generating 3GB peak disk usage in the default mode, switching to `--target-mode one` reduced peak usage to 0.5-0.7GB while increasing execution time by approximately 50%.
+In testing, for a project with 6 tests generating 3GB peak disk usage in the default mode, switching to `--target-mode one` reduced peak usage to 0.5-0.7GB while increasing execution time by approximately 50%.
 
 ## License
 
