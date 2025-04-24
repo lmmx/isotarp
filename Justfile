@@ -62,6 +62,7 @@ code-quality:
     taplo lint
     taplo format --check
     just fix-eof-ws check
+    cargo machete
     cargo fmt --check --all
 
 ship:
