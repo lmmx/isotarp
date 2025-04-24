@@ -147,3 +147,64 @@ fn test_execute_analyze_command(
         }
     }
 }
+
+/// Test the execute_list_command function
+#[rstest]
+#[case::valid_package("demolib", true, None, "Valid package with tests")]
+fn test_execute_list_command(
+    #[case] package: &str,
+    #[case] expect_ok: bool,
+    #[case] error_substring: Option<&str>,
+    #[case] description: &str,
+    demo_path: PathBuf,
+    original_dir: PathBuf,
+) {
+    use isotarp::cli::execute_list_command;
+
+    // Important: We need to ensure demo_path exists
+    assert!(
+        demo_path.exists(),
+        "Demo path does not exist: {:?}",
+        demo_path
+    );
+
+    // Switch to demo directory for executing the command
+    env::set_current_dir(&demo_path).unwrap();
+
+    // Print debug info
+    println!("Current dir: {:?}", env::current_dir().unwrap());
+
+    // Execute the list command
+    let result = execute_list_command(package);
+
+    // Restore the original directory
+    env::set_current_dir(original_dir).unwrap();
+
+    // Verify the result matches expectations
+    if expect_ok {
+        assert!(
+            result.is_ok(),
+            "Expected success for '{}', but got error: {:?}",
+            description,
+            result.err()
+        );
+    } else {
+        assert!(
+            result.is_err(),
+            "Expected error for '{}', but got success",
+            description
+        );
+
+        if let Some(substring) = error_substring {
+            let err = result.unwrap_err();
+            let err_string = err.to_string();
+            assert!(
+                err_string.contains(substring),
+                "For '{}', expected error containing '{}', got: {}",
+                description,
+                substring,
+                err_string
+            );
+        }
+    }
+}
