@@ -12,6 +12,7 @@ default: precommit prepush
 
 precommit: code-quality
 prepush: clippy test
+precommit-fix: code-quality-fix
 
 commit-msg message:
   printf "{{ message }}" | conventional_commits_linter --from-stdin --allow-angular-type-only
