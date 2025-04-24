@@ -33,10 +33,15 @@ jobs:
           mkdir coverage
           cargo llvm-cov report --doctests --lcov --output-path coverage/lcov.info
 
-      - name: Upload to codecov.io
+      - name: ✨ Publish to CodeCov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: "coverage/lcov.info"
           disable_search: true
           fail_ci_if_error: true
+
+      - name: ✨ Publish to Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
