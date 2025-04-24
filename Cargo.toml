@@ -12,6 +12,7 @@ wildmatch = "2.4.0"
 cargo-husky = { version = "1.5.0", default-features = false, features = [
   "user-hooks",
 ] }
+rstest = { version = "0.25.0", default-features = false }
 tempfile = { version = "3.19.1", default-features = false }
 
 [package]
