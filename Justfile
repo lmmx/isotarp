@@ -13,16 +13,18 @@ default: precommit prepush
 precommit: code-quality
 prepush: clippy test
 
+pre-commit-ci: precommit test
+
 commit-msg message:
   printf "{{ message }}" | conventional_commits_linter --from-stdin --allow-angular-type-only
 
 ci: precommit prepush docs
 
 clippy-all:
-    cargo clippy --offline --workspace --all-targets --all-features --target-dir target/clippy-all-features -- -D warnings
+    cargo clippy --workspace --all-targets --all-features --target-dir target/clippy-all-features -- -D warnings
 
 clippy:
-    cargo clippy --offline --workspace --all-targets --target-dir target/clippy -- -D warnings
+    cargo clippy --workspace --all-targets --target-dir target/clippy -- -D warnings
 
 test *args:
     cargo nextest run {{args}} < /dev/null
