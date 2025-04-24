@@ -36,7 +36,7 @@ fn test_coverage_analysis_demo_lib() {
     let _ = fs::remove_file(&report_file);
 
     // Get the path to the compiled isotarp binary
-    let isotarp_bin = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/debug/isotarp");
+    let isotarp_bin = env!("CARGO_BIN_EXE_isotarp");
 
     // Run the isotarp command with the current working directory set to the demo lib directory
     let analyze_output = Command::new(isotarp_bin)
