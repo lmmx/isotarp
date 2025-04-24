@@ -2,9 +2,9 @@ fail_fast: false
 
 repos:
   - repo: https://github.com/lmmx/just-pre-commit
-    rev: v0.2.8
+    rev: v0.2.9
     hooks:
       - id: ensure-just-system
-        args: ['hello']
+        args: ['hello', 'sys']
       - id: ensure-just-script
-        args: ['hello']
+        args: ['hello', 'scr']
