@@ -1,0 +1,39 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+          
+      - name: Install cargo-llvm-cov and cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov,cargo-nextest
+      
+      - uses: Swatinem/rust-cache@v2
+
+      - name: ✨ Gather coverage
+        shell: bash
+        run: |
+          cargo llvm-cov --no-report nextest
+          cargo llvm-cov --no-report --doc
+          mkdir coverage
+          cargo llvm-cov report --doctests --lcov --output-path coverage/lcov.info
+
+      - name: ✨ Publish to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: coverage/lcov.info
