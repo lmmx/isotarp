@@ -35,14 +35,6 @@ Then install Isotarp:
 cargo install isotarp
 ```
 
-Or from source:
-
-```bash
-git clone https://github.com/yourusername/isotarp.git
-cd isotarp
-cargo install --path .
-```
-
 ## Usage
 
 ### List all tests in a package
