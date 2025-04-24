@@ -25,7 +25,7 @@ jobs:
       - name: Cache setup
         uses: Swatinem/rust-cache@v2
 
-      - name: ✨ Gather coverage
+      - name: Gather coverage
         shell: bash
         run: |
           cargo llvm-cov --no-report nextest
@@ -33,7 +33,7 @@ jobs:
           mkdir coverage
           cargo llvm-cov report --doctests --lcov --output-path coverage/lcov.info
 
-      - name: ✨ Publish to Coveralls
-        uses: coverallsapp/github-action@master
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fail_ci_if_error: true
