@@ -1,26 +1,26 @@
 [dependencies]
-clap = {version = "4.5.37", features = ["derive"]}
+clap = { version = "4.5.37", features = ["derive"] }
 num_cpus = "1.16.0"
 rayon = "1.10.0"
-serde = {version = "1.0.219", features = ["derive"]}
+serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 thiserror = "2.0.12"
 walkdir = "2.5.0"
 wildmatch = "2.4.0"
 
 [dev-dependencies]
-cargo-husky = {version = "1.5.0", default-features = false, features = [
-  "user-hooks"
-]}
+cargo-husky = { version = "1.5.0", default-features = false, features = [
+  "user-hooks",
+] }
 
 [package]
-name = "isotarp"
-version = "0.1.6"
-edition = "2024"
 authors = ["Louis Maddox <louismmx@gmail.com>"]
-rust-version = "1.86.0"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/lmmx/isotarp"
-description = "Identify which tests provide code coverage of which lines, uniquness, and redundancy"
-keywords = ["isotarp", "tarpaulin", "testing", "coverage"]
 categories = ["development-tools", "development-tools::testing"]
+description = "Identify which tests provide code coverage of which lines, uniquness, and redundancy"
+edition = "2024"
+keywords = ["coverage", "isotarp", "tarpaulin", "testing"]
+license = "MIT OR Apache-2.0"
+name = "isotarp"
+repository = "https://github.com/lmmx/isotarp"
+rust-version = "1.86.0"
+version = "0.1.6"

@@ -4,6 +4,7 @@
 [![crates.io](https://img.shields.io/crates/v/isotarp.svg)](https://crates.io/crates/isotarp)
 [![documentation](https://docs.rs/isotarp/badge.svg)](https://docs.rs/isotarp)
 [![MIT/Apache-2.0 licensed](https://img.shields.io/crates/l/isotarp.svg)](./LICENSE)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/lmmx/isotarp/master.svg)](https://results.pre-commit.ci/latest/github/lmmx/isotarp/master)
 
 Isotarp is a tool to help Rust developers identify which tests provide unique code coverage.
 

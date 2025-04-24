@@ -13,6 +13,9 @@ default: precommit prepush
 precommit: code-quality
 prepush: clippy test
 
+commit-msg message:
+  printf "{{ message }}" | conventional_commits_linter --from-stdin --allow-angular-type-only
+
 ci: precommit prepush docs
 
 clippy-all:
@@ -42,7 +45,23 @@ doc-tests-ci *args:
     echo -e "\033[1;36m📚 Running documentation tests...\033[0m"
     cmd_group "cargo test --doc {{args}}"
 
+fix-eof-ws mode="":
+    #!/usr/bin/env sh
+    ARGS=''
+    if [ "{{mode}}" = "check" ]; then
+        ARGS="--check-only"
+    fi
+    whitespace-format --add-new-line-marker-at-end-of-file \
+          --new-line-marker=linux \
+          --normalize-new-line-markers \
+          --exclude ".git/|target/|.json$|.lock$" \
+          $ARGS \
+          .
+
 code-quality:
+    taplo lint
+    taplo format --check
+    just fix-eof-ws check
     cargo fmt --check --all
 
 ship:
