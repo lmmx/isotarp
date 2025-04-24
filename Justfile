@@ -65,6 +65,13 @@ code-quality:
     cargo machete
     cargo fmt --check --all
 
+code-quality-fix:
+    taplo lint
+    taplo format
+    just fix-eof-ws
+    cargo machete
+    cargo fmt --all
+
 ship:
     #!/usr/bin/env -S bash -euo pipefail
     # Refuse to run if not on master branch or not up to date with origin/master
