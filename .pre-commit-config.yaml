@@ -2,9 +2,9 @@ fail_fast: false
 
 repos:
   - repo: https://github.com/lmmx/just-pre-commit
-    rev: v0.3.7
+    rev: v0.3.8
     hooks:
       - id: run-just-script
         args: ['code-quality']
-      - id: run-just-rs
+      - id: run-just-rust
         args: ['code-quality']
