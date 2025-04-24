@@ -1,12 +1,60 @@
 // tests/commands.rs
 use isotarp::cli::execute_analyze_command;
 use isotarp::types::models::TargetMode;
+use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 use tempfile::tempdir;
 
-// Test for error handling (lines 116-120)
-// This test is already working, so we'll keep it
+// Test specifically targeting the pattern resolution code path
+#[test]
+fn test_pattern_resolution_with_invalid_pattern() {
+    // Create temporary directory for outputs
+    let temp_dir = tempdir().unwrap();
+    let output_dir = temp_dir.path().to_path_buf();
+    let report_path = temp_dir.path().join("report.json");
+
+    // Create the output directory
+    fs::create_dir_all(&output_dir).unwrap();
+
+    // Use the demo package
+    let package = "demolib";
+
+    // IMPORTANT: Find the actual demolib path using environment variables
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let demo_path = Path::new(&manifest_dir).join("tests/fixtures/demolib");
+
+    // Make sure we're within the demo directory when running the command
+    let current_dir = env::current_dir().unwrap();
+    env::set_current_dir(&demo_path).unwrap();
+
+    // Create a pattern that definitely won't match any test in demolib
+    let tests = Some(vec!["definitely_nonexistent_pattern_xyz123".to_string()]);
+
+    // Execute the analyze command
+    let result = execute_analyze_command(
+        package,
+        tests,
+        &output_dir,
+        &report_path,
+        TargetMode::default(),
+    );
+
+    // Restore the original directory
+    env::set_current_dir(current_dir).unwrap();
+
+    // This should fail with a specific error message about no matching tests
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    let err_string = err.to_string();
+    assert!(
+        err_string.contains("No matching tests to analyze"),
+        "Expected error 'No matching tests to analyze', got: {}",
+        err_string
+    );
+}
+
+// Keep the working test for error handling
 #[test]
 fn test_execute_analyze_error_handling() {
     // Create temporary directory for outputs
@@ -37,166 +85,82 @@ fn test_execute_analyze_error_handling() {
     assert!(result.is_err());
 }
 
-// // Test for lines 79-96: The case with invalid patterns
-// // Let's modify this to focus just on the invalid pattern handling
-// #[test]
-// fn test_invalid_pattern_handling() {
-//     // Create temporary directory for outputs
-//     let temp_dir = tempdir().unwrap();
-//     let output_dir = temp_dir.path().to_path_buf();
-//     let report_path = temp_dir.path().join("report.json");
-//
-//     // Create the output directory
-//     fs::create_dir_all(&output_dir).unwrap();
-//
-//     // Mock the output of list_tests by creating a test file in the output directory
-//     // This will intercept our path to create proper mock data
-//     let mock_tests = r#"["tests::test_foo", "tests::test_not_bar"]"#;
-//     let mock_file = output_dir.join("available_tests.json");
-//     fs::write(&mock_file, mock_tests).unwrap();
-//
-//     // We're targeting the specific lines 79-96 in commands.rs
-//     // where the invalid pattern handling happens
-//
-//     // 1. Simulate an environment where:
-//     //    - Some tests exist, so list_tests() succeeds
-//     //    - But the pattern doesn't match any tests
-//
-//     // Use the wrapper function to access execute_analyze_command
-//     test_with_mock_fs(
-//         &output_dir,
-//         &report_path,
-//         &["nonexistent_pattern"], // This pattern won't match any tests
-//         |result| {
-//             assert!(result.is_err());
-//             // Check for the right error message
-//             if let Err(err) = result {
-//                 let err_msg = err.to_string();
-//                 assert!(err_msg.contains("No matching tests to analyze") ||
-//                         err_msg.contains("No matching tests"),
-//                        "Got unexpected error: {}", err_msg);
-//             }
-//         },
-//     );
-// }
-
-// Test for the no unique coverage case (lines 162-178)
+// Test for the code path where tests have no unique coverage
 #[test]
-fn test_zero_unique_coverage_output() {
-    // Create temporary directory
+fn test_zero_unique_coverage_reporting() {
+    // Create temporary directory for outputs
     let temp_dir = tempdir().unwrap();
     let output_dir = temp_dir.path().to_path_buf();
-    let report_path = temp_dir.path().join("report.json");
+    let report_path = temp_dir.path().join("analysis-report.json");
 
-    // Create subdirectories needed
+    // Create the output directory
     fs::create_dir_all(&output_dir).unwrap();
 
-    // Create a mock report file that includes tests with zero unique coverage
-    let mock_analysis = r#"{
-        "package": "demolib",
-        "tests": {
-            "tests::test_foo": {
-                "total_covered_lines": 5,
-                "unique_covered_lines": 5,
-                "files": {}
-            },
-            "tests::test_redundant": {
-                "total_covered_lines": 10,
-                "unique_covered_lines": 0,
-                "files": {}
-            }
-        }
-    }"#;
+    // IMPORTANT: Find the actual demolib path using environment variables
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let demo_path = Path::new(&manifest_dir).join("tests/fixtures/demolib");
 
-    // Save the mock analysis to simulate the report file being present
-    fs::write(&report_path, mock_analysis).unwrap();
+    // Make sure we're within the demo directory when running the command
+    let current_dir = env::current_dir().unwrap();
+    env::set_current_dir(&demo_path).unwrap();
 
-    // Call test_with_mock_fs to redirect the analyze command to use our mock data
-    test_with_mock_fs(
-        &output_dir,
-        &report_path,
-        &["tests::test_foo", "tests::test_redundant"],
-        |result| {
-            assert!(
-                result.is_ok(),
-                "Expected Ok but got error: {:?}",
-                result.err()
-            );
-        },
-    );
-}
+    // We need to create specific test scenarios
+    // For the demolib package, test_not_bar has zero coverage
+    let tests = Some(vec!["tests::test_not_bar".to_string()]);
 
-// Helper function to run execute_analyze_command with simplified setup
-fn test_with_mock_fs<F>(
-    output_dir: &PathBuf,
-    report_path: &PathBuf,
-    test_names: &[&str],
-    assert_fn: F,
-) where
-    F: FnOnce(Result<(), Box<dyn std::error::Error>>),
-{
-    // Construct a real-looking test vector
-    let tests = Some(test_names.iter().map(|&s| s.to_string()).collect());
-
-    // Let's use a modified method to execute analyze with our mocked filesystem
-    let result = execute_analyze_with_mock(output_dir, report_path, tests);
-
-    // Run the provided assertion function on the result
-    assert_fn(result);
-}
-
-// Mock version of execute_analyze_command that sets up redirection
-fn execute_analyze_with_mock(
-    output_dir: &PathBuf,
-    report_path: &PathBuf,
-    tests: Option<Vec<String>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // If the report file exists, use it directly
-    if report_path.exists() {
-        // Create the output dir if it doesn't exist
-        if !output_dir.exists() {
-            fs::create_dir_all(output_dir)?;
-        }
-
-        // The test analysis was already completed
-        println!("Using pre-existing report: {}", report_path.display());
-
-        // Simulate the print output
-        if tests.is_some() {
-            // Look for tests with zero unique coverage
-            let report_content = fs::read_to_string(report_path)?;
-            let report: serde_json::Value = serde_json::from_str(&report_content)?;
-
-            // Check if we have tests with zero unique coverage in report
-            if let Some(tests_obj) = report["tests"].as_object() {
-                let mut has_zero_unique = false;
-
-                for (test_name, stats) in tests_obj {
-                    if let Some(unique) = stats["unique_covered_lines"].as_u64() {
-                        if unique == 0 && stats["total_covered_lines"].as_u64().unwrap_or(0) > 0 {
-                            has_zero_unique = true;
-                            println!("Test with NO unique coverage: {}", test_name);
-                        }
-                    }
-                }
-
-                if has_zero_unique {
-                    // We've covered the path we want to test!
-                    return Ok(());
-                }
-            }
-        }
-
-        // We've simulated the execution with our pre-made report
-        return Ok(());
-    }
-
-    // Forward to the real implementation
-    execute_analyze_command(
+    // Execute the analyze command
+    let result = execute_analyze_command(
         "demolib",
         tests,
-        output_dir,
-        report_path,
+        &output_dir,
+        &report_path,
         TargetMode::default(),
-    )
+    );
+
+    // Restore the original directory
+    env::set_current_dir(current_dir).unwrap();
+
+    // Since test_not_bar has no coverage at all, this should succeed
+    assert!(result.is_ok());
+}
+
+// Test for the full analyze path with both types of tests
+#[test]
+fn test_full_analysis_with_mixed_tests() {
+    // Create temporary directory for outputs
+    let temp_dir = tempdir().unwrap();
+    let output_dir = temp_dir.path().to_path_buf();
+    let report_path = temp_dir.path().join("analysis-report.json");
+
+    // Create the output directory
+    fs::create_dir_all(&output_dir).unwrap();
+
+    // IMPORTANT: Find the actual demolib path using environment variables
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let demo_path = Path::new(&manifest_dir).join("tests/fixtures/demolib");
+
+    // Make sure we're within the demo directory when running the command
+    let current_dir = env::current_dir().unwrap();
+    env::set_current_dir(&demo_path).unwrap();
+
+    // Run both tests - test_foo has coverage, test_not_bar has none
+    let tests = Some(vec![
+        "tests::test_foo".to_string(),
+        "tests::test_not_bar".to_string(),
+    ]);
+
+    // Execute the analyze command
+    let result = execute_analyze_command(
+        "demolib",
+        tests,
+        &output_dir,
+        &report_path,
+        TargetMode::default(),
+    );
+
+    // Restore the original directory
+    env::set_current_dir(current_dir).unwrap();
+
+    // This should succeed
+    assert!(result.is_ok());
 }
