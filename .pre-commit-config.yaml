@@ -9,4 +9,3 @@ repos:
       - id: ensure-just-script
         args: ['code-quality']
       - id: ensure-just-cargo
-      - id: ensure-cargo-rs
