@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12](https://github.com/lmmx/isotarp/compare/v0.1.11...v0.1.12) - 2025-04-24
+
+### <!-- 4 -->Documentation
+
+- add missing conventional commit (Angular type) prefixes to commit parsers ([#30](https://github.com/lmmx/isotarp/pull/30))
+
 ## [0.1.11](https://github.com/lmmx/isotarp/compare/v0.1.10...v0.1.11) - 2025-04-24
 
 ### <!-- 4 -->Documentation
