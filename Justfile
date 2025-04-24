@@ -19,10 +19,10 @@ commit-msg message:
 ci: precommit prepush docs
 
 clippy-all:
-    cargo clippy --workspace --all-targets --all-features --target-dir target/clippy-all-features -- -D warnings
+    cargo clippy --offline --workspace --all-targets --all-features --target-dir target/clippy-all-features -- -D warnings
 
 clippy:
-    cargo clippy --workspace --all-targets --target-dir target/clippy -- -D warnings
+    cargo clippy --offline --workspace --all-targets --target-dir target/clippy -- -D warnings
 
 test *args:
     cargo nextest run {{args}} < /dev/null
