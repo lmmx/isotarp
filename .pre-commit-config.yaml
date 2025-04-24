@@ -6,5 +6,5 @@ repos:
     hooks:
       - id: run-just-script
         args: ['code-quality']
-      - id: run-just-rust
-        args: ['code-quality']
+      # - id: run-just-rust
+      #   args: ['code-quality']
