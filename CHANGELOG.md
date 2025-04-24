@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7](https://github.com/lmmx/isotarp/compare/v0.1.6...v0.1.7) - 2025-04-24
+
+### Other
+
+- *(ci)* move to `just-pre-commit` and don't use Python for pre-commit hooks at all ([#18](https://github.com/lmmx/isotarp/pull/18))
+- README CI badge
+
 ## [0.1.6](https://github.com/lmmx/isotarp/compare/v0.1.5...v0.1.6) - 2025-04-23
 
 ### Fixed
