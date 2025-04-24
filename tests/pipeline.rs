@@ -47,7 +47,7 @@ fn test_pipeline_prepare_next() {
     let output_dir = temp_dir.path().join("output");
 
     // Set up directories
-    fs::create_dir_all(&master_dir.join("debug/deps")).unwrap();
+    fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
     fs::create_dir_all(&output_dir).unwrap();
 
     // Create a test executable file
@@ -84,7 +84,7 @@ fn test_pipeline_get_ready_dir() {
     let output_dir = temp_dir.path().join("output");
 
     // Set up directories
-    fs::create_dir_all(&master_dir.join("debug/deps")).unwrap();
+    fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
     fs::create_dir_all(&output_dir).unwrap();
 
     // Initialize pipeline
@@ -156,7 +156,7 @@ fn test_pipeline_full_workflow() {
     let output_dir = temp_dir.path().join("output");
 
     // Set up directories
-    fs::create_dir_all(&master_dir.join("debug/deps")).unwrap();
+    fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
     fs::create_dir_all(&output_dir).unwrap();
 
     // Create test files
@@ -170,7 +170,7 @@ fn test_pipeline_full_workflow() {
     let test_names = ["test1", "test2", "test3"];
 
     // Prepare first test
-    pipeline.prepare_next(&test_names[0]).unwrap();
+    pipeline.prepare_next(test_names[0]).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(50));
 
     for i in 0..test_names.len() {
@@ -184,7 +184,7 @@ fn test_pipeline_full_workflow() {
 
         // Prepare next test if there is one
         if i + 1 < test_names.len() {
-            pipeline.prepare_next(&test_names[i + 1]).unwrap();
+            pipeline.prepare_next(test_names[i + 1]).unwrap();
             // Let preparation start
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
