@@ -35,6 +35,8 @@ Then install Isotarp:
 cargo install isotarp
 ```
 
+You can use `cargo binstall` for both if you prefer.
+
 ## Usage
 
 ### List all tests in a package
