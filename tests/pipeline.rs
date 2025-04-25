@@ -1,15 +1,15 @@
 use isotarp::utils::pipeline::TargetPipeline;
 use std::fs;
-use tempfile::tempdir;
+use temp_testdir::TempDir;
 
 // Test the initialization of the pipeline
 // #[ignore]
 // #[test]
 // fn test_pipeline_initialization() {
 //     // Create temporary directories
-//     let temp_dir = tempdir().unwrap();
-//     let master_dir = temp_dir.path().join("master");
-//     let output_dir = temp_dir.path().join("output");
+//     let temp_dir = TempDir::default();
+//     let master_dir = temp_dir.join("master");
+//     let output_dir = temp_dir.join("output");
 //
 //     // Create master directory structure
 //     fs::create_dir_all(&master_dir).unwrap();
@@ -42,9 +42,9 @@ use tempfile::tempdir;
 #[test]
 fn test_pipeline_prepare_next() {
     // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let master_dir = temp_dir.path().join("master");
-    let output_dir = temp_dir.path().join("output");
+    let temp_dir = TempDir::default();
+    let master_dir = temp_dir.join("master");
+    let output_dir = temp_dir.join("output");
 
     // Set up directories
     fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
@@ -79,9 +79,9 @@ fn test_pipeline_prepare_next() {
 #[test]
 fn test_pipeline_get_ready_dir() {
     // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let master_dir = temp_dir.path().join("master");
-    let output_dir = temp_dir.path().join("output");
+    let temp_dir = TempDir::default();
+    let master_dir = temp_dir.join("master");
+    let output_dir = temp_dir.join("output");
 
     // Set up directories
     fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
@@ -118,9 +118,9 @@ fn test_pipeline_get_ready_dir() {
 #[test]
 fn test_pipeline_cleanup() {
     // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let master_dir = temp_dir.path().join("master");
-    let output_dir = temp_dir.path().join("output");
+    let temp_dir = TempDir::default();
+    let master_dir = temp_dir.join("master");
+    let output_dir = temp_dir.join("output");
 
     // Set up directories
     fs::create_dir_all(&master_dir).unwrap();
@@ -151,9 +151,9 @@ fn test_pipeline_cleanup() {
 #[test]
 fn test_pipeline_full_workflow() {
     // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let master_dir = temp_dir.path().join("master");
-    let output_dir = temp_dir.path().join("output");
+    let temp_dir = TempDir::default();
+    let master_dir = temp_dir.join("master");
+    let output_dir = temp_dir.join("output");
 
     // Set up directories
     fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
@@ -200,9 +200,9 @@ fn test_pipeline_full_workflow() {
 // #[test]
 // fn test_pipeline_error_handling() {
 //     // Create temporary directories
-//     let temp_dir = tempdir().unwrap();
-//     let master_dir = temp_dir.path().join("master");
-//     let output_dir = temp_dir.path().join("output");
+//     let temp_dir = TempDir::default();
+//     let master_dir = temp_dir.join("master");
+//     let output_dir = temp_dir.join("output");
 //
 //     // Set up directories but make master a file instead of directory to cause errors
 //     fs::create_dir_all(&output_dir).unwrap();

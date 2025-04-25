@@ -4,25 +4,7 @@ use isotarp::cli::execute_analyze_command;
 use isotarp::types::models::TargetMode;
 use rstest::*;
 use std::{env, fs, path::Path, path::PathBuf};
-use tempfile::TempDir;
-
-#[fixture]
-#[once]
-fn temp_dir() -> TempDir {
-    tempfile::tempdir().unwrap()
-}
-
-#[fixture]
-fn output_dir(temp_dir: &TempDir) -> PathBuf {
-    let output_dir = temp_dir.path().to_path_buf();
-    fs::create_dir_all(&output_dir).unwrap();
-    output_dir
-}
-
-#[fixture]
-fn report_path(temp_dir: &TempDir) -> PathBuf {
-    temp_dir.path().join("analysis-report.json")
-}
+use temp_testdir::TempDir;
 
 #[fixture]
 fn demo_path() -> PathBuf {
@@ -34,6 +16,16 @@ fn demo_path() -> PathBuf {
 #[fixture]
 fn original_dir() -> PathBuf {
     env::current_dir().unwrap()
+}
+
+fn make_output_dir(temp_dir: &TempDir) -> PathBuf {
+    let output_dir = temp_dir.to_path_buf();
+    fs::create_dir_all(&output_dir).unwrap();
+    output_dir
+}
+
+fn make_report_path(temp_dir: &TempDir) -> PathBuf {
+    temp_dir.join("analysis-report.json")
 }
 
 #[rstest]
@@ -74,12 +66,13 @@ fn test_execute_analyze_command(
     #[case] error_substring: Option<&str>,
     #[case] description: &str,
     #[case] create_file_instead_of_dir: Option<bool>,
-    temp_dir: &TempDir,
-    output_dir: PathBuf,
-    report_path: PathBuf,
     demo_path: PathBuf,
     original_dir: PathBuf,
 ) {
+    let temp_dir = TempDir::default();
+    let output_dir = make_output_dir(&temp_dir);
+    let report_path = make_report_path(&temp_dir);
+
     // Important: We need to ensure demo_path exists
     assert!(
         demo_path.exists(),
@@ -90,7 +83,7 @@ fn test_execute_analyze_command(
     // Set up output location (file or directory based on test case)
     let output_location = if create_file_instead_of_dir.unwrap_or(false) {
         // Create a file at the output_dir path to cause directory creation to fail
-        let file_path = temp_dir.path().join("output");
+        let file_path = temp_dir.join("output");
         fs::write(&file_path, "not a directory").unwrap();
         file_path
     } else {

@@ -13,7 +13,7 @@ cargo-husky = { version = "1.5.0", default-features = false, features = [
   "user-hooks",
 ] }
 rstest = { version = "0.25.0", default-features = false }
-tempfile = { version = "3.19.1", default-features = false }
+temp_testdir = { version = "0.2.3", default-features = false }
 
 [package]
 authors = ["Louis Maddox <louismmx@gmail.com>"]
