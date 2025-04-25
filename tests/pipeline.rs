@@ -1,57 +1,44 @@
 use isotarp::utils::pipeline::TargetPipeline;
+use rstest::*;
 use std::fs;
-use tempfile::tempdir;
+use std::path::{Path, PathBuf};
+use temp_testdir::TempDir;
 
-// Test the initialization of the pipeline
-// #[ignore]
-// #[test]
-// fn test_pipeline_initialization() {
-//     // Create temporary directories
-//     let temp_dir = tempdir().unwrap();
-//     let master_dir = temp_dir.path().join("master");
-//     let output_dir = temp_dir.path().join("output");
-//
-//     // Create master directory structure
-//     fs::create_dir_all(&master_dir).unwrap();
-//     fs::create_dir_all(&output_dir).unwrap();
-//
-//     // Initialize the pipeline
-//     let pipeline = TargetPipeline::new(&master_dir, &output_dir);
-//     assert!(pipeline.is_ok(), "Failed to initialize pipeline");
-//
-//     pipeline.unwrap();
-//
-//     // Check that directories were created
-//     let artifacts_dir = output_dir.parent().unwrap().join(".isotarp-artifacts");
-//     let shared_dir = artifacts_dir.join("shared_target");
-//     let staging_dir = artifacts_dir.join("staging_target");
-//
-//     assert!(shared_dir.exists(), "Shared target directory was not created");
-//     assert!(staging_dir.exists(), "Staging target directory was not created");
-//
-//     // Verify minimal target structure was created
-//     assert!(shared_dir.join("debug").exists(), "Debug directory was not created");
-//     assert!(shared_dir.join("debug/.fingerprint").exists(), "Fingerprint directory was not created");
-//     assert!(shared_dir.join("debug/deps").exists(), "Deps directory was not created");
-//     assert!(shared_dir.join("debug/build").exists(), "Build directory was not created");
-//     assert!(shared_dir.join("debug/incremental").exists(), "Incremental directory was not created");
-//     assert!(shared_dir.join("debug/.cargo-lock").exists(), "Cargo lock file was not created");
-// }
+// Common fixtures for our tests
+#[fixture]
+fn temp_dir() -> TempDir {
+    TempDir::default()
+}
+
+#[fixture]
+fn master_dir(temp_dir: TempDir) -> PathBuf {
+    let dir = temp_dir.join("master");
+    fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+#[fixture]
+fn output_dir(temp_dir: TempDir) -> PathBuf {
+    let dir = temp_dir.join("output");
+    fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+// Helper to create test directory structure
+fn setup_test_dirs(master_dir: &Path, output_dir: &Path, create_test_binary: bool) {
+    fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
+    fs::create_dir_all(output_dir).unwrap();
+
+    if create_test_binary {
+        fs::write(master_dir.join("debug/deps/test_binary"), "dummy content").unwrap();
+    }
+}
 
 // Test preparing the next test
-#[test]
-fn test_pipeline_prepare_next() {
-    // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let master_dir = temp_dir.path().join("master");
-    let output_dir = temp_dir.path().join("output");
-
-    // Set up directories
-    fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
-    fs::create_dir_all(&output_dir).unwrap();
-
-    // Create a test executable file
-    fs::write(master_dir.join("debug/deps/test_binary"), "dummy content").unwrap();
+#[rstest]
+fn test_pipeline_prepare_next(master_dir: PathBuf, output_dir: PathBuf) {
+    // Setup test directories with a test binary
+    setup_test_dirs(&master_dir, &output_dir, true);
 
     // Initialize pipeline
     let mut pipeline = TargetPipeline::new(&master_dir, &output_dir).unwrap();
@@ -76,16 +63,10 @@ fn test_pipeline_prepare_next() {
 }
 
 // Test getting the ready directory
-#[test]
-fn test_pipeline_get_ready_dir() {
-    // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let master_dir = temp_dir.path().join("master");
-    let output_dir = temp_dir.path().join("output");
-
-    // Set up directories
-    fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
-    fs::create_dir_all(&output_dir).unwrap();
+#[rstest]
+fn test_pipeline_get_ready_dir(master_dir: PathBuf, output_dir: PathBuf) {
+    // Setup test directories
+    setup_test_dirs(&master_dir, &output_dir, true);
 
     // Initialize pipeline
     let mut pipeline = TargetPipeline::new(&master_dir, &output_dir).unwrap();
@@ -115,17 +96,8 @@ fn test_pipeline_get_ready_dir() {
 }
 
 // Test cleanup functionality
-#[test]
-fn test_pipeline_cleanup() {
-    // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let master_dir = temp_dir.path().join("master");
-    let output_dir = temp_dir.path().join("output");
-
-    // Set up directories
-    fs::create_dir_all(&master_dir).unwrap();
-    fs::create_dir_all(&output_dir).unwrap();
-
+#[rstest]
+fn test_pipeline_cleanup(master_dir: PathBuf, output_dir: PathBuf) {
     // Initialize pipeline
     let mut pipeline = TargetPipeline::new(&master_dir, &output_dir).unwrap();
 
@@ -148,18 +120,10 @@ fn test_pipeline_cleanup() {
 }
 
 // Test full workflow
-#[test]
-fn test_pipeline_full_workflow() {
-    // Create temporary directories
-    let temp_dir = tempdir().unwrap();
-    let master_dir = temp_dir.path().join("master");
-    let output_dir = temp_dir.path().join("output");
-
-    // Set up directories
-    fs::create_dir_all(master_dir.join("debug/deps")).unwrap();
-    fs::create_dir_all(&output_dir).unwrap();
-
-    // Create test files
+#[rstest]
+fn test_pipeline_full_workflow(master_dir: PathBuf, output_dir: PathBuf) {
+    // Setup test directories with test binaries
+    setup_test_dirs(&master_dir, &output_dir, false);
     fs::write(master_dir.join("debug/deps/test_binary1"), "test1").unwrap();
     fs::write(master_dir.join("debug/deps/test_binary2"), "test2").unwrap();
 
@@ -195,14 +159,37 @@ fn test_pipeline_full_workflow() {
     assert!(result.is_ok(), "Final cleanup should succeed");
 }
 
-// Test error handling
-// #[ignore]
-// #[test]
-// fn test_pipeline_error_handling() {
-//     // Create temporary directories
-//     let temp_dir = tempdir().unwrap();
-//     let master_dir = temp_dir.path().join("master");
-//     let output_dir = temp_dir.path().join("output");
+// // Test initialization
+// #[rstest]
+// fn test_pipeline_initialization(master_dir: PathBuf, output_dir: PathBuf) {
+//     // Initialize the pipeline
+//     let pipeline = TargetPipeline::new(&master_dir, &output_dir);
+//     assert!(pipeline.is_ok(), "Failed to initialize pipeline");
+//
+//     pipeline.unwrap();
+//
+//     // Check that directories were created
+//     let artifacts_dir = output_dir.parent().unwrap().join(".isotarp-artifacts");
+//     let shared_dir = artifacts_dir.join("shared_target");
+//     let staging_dir = artifacts_dir.join("staging_target");
+//
+//     assert!(shared_dir.exists(), "Shared target directory was not created");
+//     assert!(staging_dir.exists(), "Staging target directory was not created");
+//
+//     // Verify minimal target structure was created
+//     assert!(shared_dir.join("debug").exists(), "Debug directory was not created");
+//     assert!(shared_dir.join("debug/.fingerprint").exists(), "Fingerprint directory was not created");
+//     assert!(shared_dir.join("debug/deps").exists(), "Deps directory was not created");
+//     assert!(shared_dir.join("debug/build").exists(), "Build directory was not created");
+//     assert!(shared_dir.join("debug/incremental").exists(), "Incremental directory was not created");
+//     assert!(shared_dir.join("debug/.cargo-lock").exists(), "Cargo lock file was not created");
+// }
+//
+// // Test error handling
+// #[rstest]
+// fn test_pipeline_error_handling(temp_dir: TempDir) {
+//     let master_dir = temp_dir.join("master");
+//     let output_dir = temp_dir.join("output");
 //
 //     // Set up directories but make master a file instead of directory to cause errors
 //     fs::create_dir_all(&output_dir).unwrap();
