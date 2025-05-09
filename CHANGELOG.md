@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13](https://github.com/lmmx/isotarp/compare/v0.1.12...v0.1.13) - 2025-05-09
+
+### <!-- 4 -->Documentation
+
+- remove coveralls badge
+
+### <!-- 5 -->Refactor
+
+- *(rstest)* use test fixtures, cover test listing too ([#38](https://github.com/lmmx/isotarp/pull/38))
+
+### <!-- 6 -->Testing
+
+- use rstest's test_tempdir crate ([#39](https://github.com/lmmx/isotarp/pull/39))
+- further commands coverage ([#36](https://github.com/lmmx/isotarp/pull/36))
+- cover commands ([#35](https://github.com/lmmx/isotarp/pull/35))
+- cover pipeline ([#33](https://github.com/lmmx/isotarp/pull/33))
+
+### <!-- 9 -->Other
+
+- [pre-commit.ci] pre-commit autoupdate ([#40](https://github.com/lmmx/isotarp/pull/40))
+
 ## [0.1.12](https://github.com/lmmx/isotarp/compare/v0.1.11...v0.1.12) - 2025-04-24
 
 ### <!-- 4 -->Documentation
